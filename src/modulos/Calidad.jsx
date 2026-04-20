@@ -1,5 +1,5 @@
 // src/modulos/Calidad.jsx
-import { useContext, useState } from "react";
+import { useContext, useState, useMemo } from "react";
 import { ERPContext } from "../ERP";
 import { CLIENTES, MAQUINAS, cn } from "../datos";
 import { Bdg, Card, Tbl, Tabs, Al, KRow, ck } from "../ui";
@@ -1562,179 +1562,514 @@ function TabControles({ registros, bloqueadas, setBloqueadas }){
     </div>
   );
 }
-// ═══════════════════════════════════════════════════════════════════
-// TAB: RETRABAJOS
-// ═══════════════════════════════════════════════════════════════════
-const TIPOS_RETRABAJO   = ["Dimensional","Superficial","Pintura / acabado","Ensamblaje","Limpieza","Otro"];
-const CAUSAS_RETRABAJO  = ["Error operario","Defecto material","Parámetro proceso","Utillaje","Máquina","Diseño","Proveedor","Otro"];
-const ESTADOS_RT        = ["Pendiente","En proceso","Finalizado","Rechazado"];
-const RESULTADOS_RT     = ["Conforme","No conforme","Pendiente verificación"];
-const OPERARIOS_RT      = ["C. Font","J. Pérez","D. Gil","F. Cano","A. López","Sin asignar"];
 
-const EST_RT = {
-  "Pendiente": { bg:"#fffbeb", tx:"#92400e", bd:"#fde68a", icon:"⏳" },
-  "En proceso":{ bg:"#eff6ff", tx:"#1d4ed8", bd:"#93c5fd", icon:"⚙"  },
-  "Finalizado":{ bg:"#f0fdf4", tx:"#166534", bd:"#86efac", icon:"✓"  },
-  "Rechazado": { bg:"#fef2f2", tx:"#b91c1c", bd:"#fca5a5", icon:"✕"  },
-};
-const RES_RT = {
-  "Conforme":               { bg:"#f0fdf4", tx:"#166534", bd:"#86efac" },
-  "No conforme":            { bg:"#fef2f2", tx:"#b91c1c", bd:"#fca5a5" },
-  "Pendiente verificación": { bg:"#fffbeb", tx:"#92400e", bd:"#fde68a" },
-};
+// ─── MÓDULO PRINCIPAL ─────────────────────────────────────────────
 
-const RETRABAJOS_INIT = [
-  { id:"RT-2026-001", f:"10/03", planta:"Esparreguera", cli:58,  of:"OF-2598", maq:"TWIN44", tipo:"Superficial",      causa:"Parámetro proceso", desc:"Capa de recubrimiento fuera de tolerancia — repasar 320 piezas", kg_afectados:280, uds_afectadas:320, est:"Finalizado",  resultado:"Conforme",               operario:"C. Font",    resp:"J. García",  t_estimado:4, t_real:4.5, coste_mano_obra:180, coste_material:40,  obs:"Verificado espesor OK", fotos:[], historial:[{ts:Date.now()-7*86400000,accion:"Retrabajo creado",usuario:"J. García",estado:"Pendiente"},{ts:Date.now()-5*86400000,accion:"Finalizado — Conforme",usuario:"J. García",estado:"Finalizado"}] },
-  { id:"RT-2026-002", f:"12/03", planta:"Esparreguera", cli:102, of:"OF-2591", maq:"MN-01",  tipo:"Dimensional",       causa:"Utillaje",          desc:"Rebaba en zona roscada — limpieza y verificación 100%",           kg_afectados:150, uds_afectadas:200, est:"En proceso",  resultado:"Pendiente verificación",  operario:"J. Pérez",   resp:"M. Torres", t_estimado:3, t_real:0,   coste_mano_obra:90,  coste_material:0,   obs:"",                      fotos:[], historial:[{ts:Date.now()-5*86400000,accion:"Retrabajo creado",usuario:"M. Torres",estado:"Pendiente"},{ts:Date.now()-4*86400000,accion:"Asignado a J. Pérez",usuario:"M. Torres",estado:"En proceso"}] },
-  { id:"RT-2026-003", f:"14/03", planta:"Esparreguera", cli:9,   of:"OF-2595", maq:"GR-01",  tipo:"Pintura / acabado", causa:"Defecto material",  desc:"Manchas en acabado superficial — relacado parcial",               kg_afectados:320, uds_afectadas:450, est:"Pendiente",   resultado:"Pendiente verificación",  operario:"Sin asignar",resp:"A. Martín", t_estimado:6, t_real:0,   coste_mano_obra:0,   coste_material:120, obs:"Esperando cabina",      fotos:[], historial:[{ts:Date.now()-3*86400000,accion:"Retrabajo creado",usuario:"A. Martín",estado:"Pendiente"}] },
-  { id:"RT-2026-004", f:"15/03", planta:"Esparreguera", cli:458, of:"OF-2604", maq:"DC02",   tipo:"Limpieza",          causa:"Error operario",    desc:"Contaminación por aceite — lavado y secado completo",              kg_afectados:480, uds_afectadas:600, est:"Rechazado",   resultado:"No conforme",             operario:"D. Gil",     resp:"P. Ramos",  t_estimado:2, t_real:2.5, coste_mano_obra:100, coste_material:30,  obs:"Piezas irrecuperables", fotos:[], historial:[{ts:Date.now()-6*86400000,accion:"Retrabajo creado",usuario:"P. Ramos",estado:"Pendiente"},{ts:Date.now()-4*86400000,accion:"Rechazado — irrecuperable",usuario:"P. Ramos",estado:"Rechazado"}] },
+// ═══════════════════════════════════════════════════════════════════
+// MÓDULO RETRABAJOS
+// ═══════════════════════════════════════════════════════════════════
+// ─── ESTILOS (mismo patrón que Calidad.jsx) ───────────────────────
+const MI  = { border:"1.5px solid #d1d5db", borderRadius:8, padding:"9px 12px", fontSize:13, color:"#111827", background:"#fff", outline:"none", width:"100%", boxSizing:"border-box" };
+const MIS = { ...MI, padding:"7px 10px", fontSize:12 };
+const ML  = { fontSize:11, fontWeight:600, color:"#374151", textTransform:"uppercase", letterSpacing:".05em", marginBottom:4, display:"block" };
+const MB  = { border:"none", borderRadius:7, cursor:"pointer", fontSize:12, fontWeight:600, padding:"7px 16px" };
+const MBP = { ...MB, background:"#2563eb", color:"#fff" };
+const MBD = { ...MB, background:"#dc2626", color:"#fff" };
+const MBG = { ...MB, background:"transparent", border:"1px solid #d1d5db", color:"#374151" };
+
+const OPERARIOS = ["J. García","M. Torres","A. Martín","P. Ramos","D. Gil","C. Font","J. Pérez","F. Cano","R. Mas","L. Vega","Sin asignar"];
+const MOTIVOS   = ["Espesor fuera de spec","Aspecto / color","Adherencia insuficiente","Contaminación","Corrosión","Dimensión fuera de tolerancia","Defecto visual","Otro"];
+const PROCESOS  = ["Recubrimiento","Granallado","Desaceitado","Desengrasado","Pretratamiento","Mallado","Otro"];
+const RESULTADOS = ["Pendiente","Aprobado","Rechazado — Chatarra","Reprocesado OK","Reprocesado NOK"];
+
+const RT_INIT = [
+  { id:"RT-2026-001", fecha:"12/03/2026", hora:"09:15", of:"OF-2601", cli:58,  maq:"MN-01",  proceso:"Recubrimiento",
+    motivo:"Espesor fuera de spec", kg:24, uds:480, desc:"Espesor 7μm — mínimo 10μm. Lote parcial zona inferior",
+    operario:"J. Pérez", resp_calidad:"M. Torres",
+    accion:"Rearranque con parámetros corregidos. Vc aumentado a 290.",
+    resultado:"Reprocesado OK", coste_hora:2.4, horas:1.5, material_extra:0,
+    origen_nc:"NC-2026-002", obs:"Vinculado a ajuste parámetros MN-01" },
+  { id:"RT-2026-002", fecha:"13/03/2026", hora:"14:30", of:"OF-2604", cli:458, maq:"DC02",   proceso:"Desaceitado",
+    motivo:"Aspecto / color", kg:60, uds:0, desc:"Manchas color no uniforme zona central piezas. Lote completo afectado",
+    operario:"D. Gil", resp_calidad:"P. Ramos",
+    accion:"Limpieza baño + reproceso piezas afectadas",
+    resultado:"Pendiente", coste_hora:2.2, horas:2.0, material_extra:45,
+    origen_nc:"NC-2026-004", obs:"" },
+  { id:"RT-2026-003", fecha:"10/03/2026", hora:"11:00", of:"OF-2598", cli:58,  maq:"TWIN44", proceso:"Recubrimiento",
+    motivo:"Defecto visual", kg:15, uds:300, desc:"Piezas con marcas de bastidor — zona de contacto sin recubrimiento",
+    operario:"C. Font", resp_calidad:"J. García",
+    accion:"Reproceso manual en zona afectada + nueva inspección 100%",
+    resultado:"Aprobado", coste_hora:2.4, horas:3.0, material_extra:20,
+    origen_nc:"", obs:"Sin NC asociada — detectado en autocontrol" },
+  { id:"RT-2026-004", fecha:"08/03/2026", hora:"16:45", of:"OF-2590", cli:102, maq:"GR-01",  proceso:"Granallado",
+    motivo:"Adherencia insuficiente", kg:40, uds:800, desc:"Cross-cut Gt3 — especificación máx Gt1",
+    operario:"F. Cano", resp_calidad:"A. Martín",
+    accion:"Granallado prolongado 15min extra + revisión parámetros abrasivo",
+    resultado:"Rechazado — Chatarra", coste_hora:2.0, horas:2.5, material_extra:0,
+    origen_nc:"NC-2026-003", obs:"Lote declarado chatarra. Coste imputado a cliente" },
 ];
 
-function ModalRetrabajo({ rt, rts, onClose, onGuardar }){
-  const esNuevo=!rt||!rts.find(r=>r.id===rt.id);
-  const [form,setForm]=useState(rt||{tipo:"Superficial",causa:"Parámetro proceso",est:"Pendiente",resultado:"Pendiente verificación",planta:"Esparreguera",cli:"",of:"",maq:"",desc:"",obs:"",kg_afectados:0,uds_afectadas:0,t_estimado:0,t_real:0,coste_mano_obra:0,coste_material:0,operario:"Sin asignar",resp:"",fotos:[]});
-  const ff=k=>e=>setForm(p=>({...p,[k]:e.target.type==="number"?parseFloat(e.target.value)||0:e.target.value}));
-  function addFoto(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>setForm(p=>({...p,fotos:[...(p.fotos||[]),{url:ev.target.result,nombre:f.name}]}));r.readAsDataURL(f);}
-  function removeFoto(i){setForm(p=>({...p,fotos:p.fotos.filter((_,j)=>j!==i)}));}
-  const canSave=form.desc?.trim()&&form.of?.trim();
-  const FI2={border:"1.5px solid #d1d5db",borderRadius:8,padding:"8px 11px",fontSize:13,color:"#111827",background:"#fff",outline:"none",width:"100%",boxSizing:"border-box"};
-  const FIA2={...FI2,resize:"vertical",fontFamily:"inherit"};
-  return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:600,padding:16}} onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
-      <div style={{background:"#fff",borderRadius:14,width:680,maxWidth:"98%",maxHeight:"94vh",display:"flex",flexDirection:"column",boxShadow:"0 25px 60px rgba(0,0,0,.3)",overflow:"hidden"}}>
-        <div style={{padding:"14px 20px",borderBottom:"1px solid #f3f4f6",background:"#fafafa",display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexShrink:0}}>
-          <div><div style={{fontWeight:700,fontSize:15,color:"#111827"}}>{esNuevo?"Nuevo Retrabajo":"Editar — "+rt?.id}</div><div style={{fontSize:12,color:"#6b7280",marginTop:2}}>RecubrimetalTech · Calidad · Retrabajos</div></div>
-          <button onClick={onClose} style={{background:"#f3f4f6",border:"none",cursor:"pointer",width:30,height:30,borderRadius:"50%",fontSize:16,color:"#6b7280",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+function badgeResultado(r) {
+  if (!r || r === "Pendiente") return { bg:"#fffbeb", tx:"#92400e", bd:"#fde68a", icon:"⏳" };
+  if (r === "Aprobado")        return { bg:"#f0fdf4", tx:"#166534", bd:"#86efac", icon:"✓" };
+  if (r.startsWith("Rechazado")) return { bg:"#fef2f2", tx:"#b91c1c", bd:"#fca5a5", icon:"✕" };
+  if (r.startsWith("Reprocesado OK"))  return { bg:"#eff6ff", tx:"#1d4ed8", bd:"#93c5fd", icon:"↻" };
+  if (r.startsWith("Reprocesado NOK")) return { bg:"#fef2f2", tx:"#b91c1c", bd:"#fca5a5", icon:"↻" };
+  return { bg:"#f9fafb", tx:"#6b7280", bd:"#e5e7eb", icon:"·" };
+}
+
+function Campo({ label, required, children }) {
+  return <div style={{display:"flex",flexDirection:"column",gap:5}}><label style={ML}>{label}{required&&<span style={{color:"#ef4444",marginLeft:2}}>*</span>}</label>{children}</div>;
+}
+function R2({ c }) { return <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>{c}</div>; }
+function R3({ c }) { return <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14}}>{c}</div>; }
+function Sep({ label }) {
+  return <div style={{display:"flex",alignItems:"center",gap:10,margin:"4px 0"}}>
+    <div style={{flex:1,height:1,background:"#f3f4f6"}}/>
+    <span style={{fontSize:11,fontWeight:600,color:"#9ca3af",textTransform:"uppercase",letterSpacing:".06em",whiteSpace:"nowrap"}}>{label}</span>
+    <div style={{flex:1,height:1,background:"#f3f4f6"}}/>
+  </div>;
+}
+
+function Modal({ titulo, subtitulo, onClose, onGuardar, btnLabel="Guardar", ancho=620, children }) {
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:600,padding:16}}
+         onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div style={{background:"#fff",borderRadius:14,width:ancho,maxWidth:"98%",maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:"0 25px 50px rgba(0,0,0,.25)",overflow:"hidden"}}>
+        <div style={{padding:"18px 22px",borderBottom:"1px solid #f3f4f6",background:"#fafafa",display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexShrink:0}}>
+          <div>
+            <div style={{fontWeight:700,fontSize:16,color:"#111827"}}>{titulo}</div>
+            {subtitulo&&<div style={{fontSize:12,color:"#6b7280",marginTop:2}}>{subtitulo}</div>}
+          </div>
+          <button onClick={onClose} style={{background:"#f3f4f6",border:"none",cursor:"pointer",width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:"#6b7280",flexShrink:0}}>✕</button>
         </div>
-        <div style={{flex:1,overflowY:"auto",padding:"18px 20px",display:"flex",flexDirection:"column",gap:14}}>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14}}>
-            <div style={{display:"flex",flexDirection:"column",gap:4}}><label style={{fontSize:11,fontWeight:600,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",marginBottom:4,display:"block"}}>Tipo *</label><select value={form.tipo} onChange={ff("tipo")} style={FI2}>{TIPOS_RETRABAJO.map(t=><option key={t}>{t}</option>)}</select></div>
-            <div style={{display:"flex",flexDirection:"column",gap:4}}><label style={{fontSize:11,fontWeight:600,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",marginBottom:4,display:"block"}}>Causa</label><select value={form.causa} onChange={ff("causa")} style={FI2}>{CAUSAS_RETRABAJO.map(c=><option key={c}>{c}</option>)}</select></div>
-            <div style={{display:"flex",flexDirection:"column",gap:4}}><label style={{fontSize:11,fontWeight:600,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",marginBottom:4,display:"block"}}>Planta</label><select value={form.planta} onChange={ff("planta")} style={FI2}>{["Esparreguera","Vitoria"].map(p=><option key={p}>{p}</option>)}</select></div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-            <div style={{display:"flex",flexDirection:"column",gap:4}}><label style={{fontSize:11,fontWeight:600,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",marginBottom:4,display:"block"}}>Cliente</label><select value={form.cli} onChange={e=>setForm(p=>({...p,cli:parseInt(e.target.value)||e.target.value}))} style={FI2}><option value="">— Seleccionar —</option>{CLIENTES.map(c=><option key={c.id} value={c.id}>{c.n}</option>)}</select></div>
-            <div style={{display:"flex",flexDirection:"column",gap:4}}><label style={{fontSize:11,fontWeight:600,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",marginBottom:4,display:"block"}}>Máquina</label><select value={form.maq} onChange={ff("maq")} style={FI2}><option value="">— Seleccionar —</option>{MAQUINAS.filter(m=>m.est!=="Inhabilitada").map(m=><option key={m.id}>{m.id}</option>)}</select></div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14}}>
-            <div style={{display:"flex",flexDirection:"column",gap:4}}><label style={{fontSize:11,fontWeight:600,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",marginBottom:4,display:"block"}}>OF *</label><input value={form.of} onChange={ff("of")} style={FI2} placeholder="OF-2610"/></div>
-            <div style={{display:"flex",flexDirection:"column",gap:4}}><label style={{fontSize:11,fontWeight:600,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",marginBottom:4,display:"block"}}>Kg afectados</label><input type="number" value={form.kg_afectados} onChange={ff("kg_afectados")} style={FI2}/></div>
-            <div style={{display:"flex",flexDirection:"column",gap:4}}><label style={{fontSize:11,fontWeight:600,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",marginBottom:4,display:"block"}}>Uds afectadas</label><input type="number" value={form.uds_afectadas} onChange={ff("uds_afectadas")} style={FI2}/></div>
-          </div>
-          <div style={{display:"flex",flexDirection:"column",gap:4}}><label style={{fontSize:11,fontWeight:600,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",marginBottom:4,display:"block"}}>Descripción del retrabajo *</label><textarea value={form.desc} onChange={ff("desc")} rows={3} style={FIA2} placeholder="Describe qué hay que retrabajar y cómo…"/></div>
-          <div style={{display:"flex",flexDirection:"column",gap:4}}><label style={{fontSize:11,fontWeight:600,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",marginBottom:4,display:"block"}}>Observaciones</label><textarea value={form.obs} onChange={ff("obs")} rows={2} style={FIA2} placeholder="Notas adicionales…"/></div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-            <div style={{display:"flex",flexDirection:"column",gap:4}}><label style={{fontSize:11,fontWeight:600,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",marginBottom:4,display:"block"}}>Operario</label><select value={form.operario} onChange={ff("operario")} style={FI2}>{OPERARIOS_RT.map(o=><option key={o}>{o}</option>)}</select></div>
-            <div style={{display:"flex",flexDirection:"column",gap:4}}><label style={{fontSize:11,fontWeight:600,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",marginBottom:4,display:"block"}}>Responsable</label><input value={form.resp} onChange={ff("resp")} style={FI2} placeholder="Jefe de sección…"/></div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:14}}>
-            <div style={{display:"flex",flexDirection:"column",gap:4}}><label style={{fontSize:11,fontWeight:600,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",marginBottom:4,display:"block"}}>T. estimado (h)</label><input type="number" value={form.t_estimado} onChange={ff("t_estimado")} style={FI2} step="0.5"/></div>
-            <div style={{display:"flex",flexDirection:"column",gap:4}}><label style={{fontSize:11,fontWeight:600,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",marginBottom:4,display:"block"}}>T. real (h)</label><input type="number" value={form.t_real} onChange={ff("t_real")} style={FI2} step="0.5"/></div>
-            <div style={{display:"flex",flexDirection:"column",gap:4}}><label style={{fontSize:11,fontWeight:600,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",marginBottom:4,display:"block"}}>Coste M.O. (€)</label><input type="number" value={form.coste_mano_obra} onChange={ff("coste_mano_obra")} style={FI2}/></div>
-            <div style={{display:"flex",flexDirection:"column",gap:4}}><label style={{fontSize:11,fontWeight:600,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",marginBottom:4,display:"block"}}>Coste material (€)</label><input type="number" value={form.coste_material} onChange={ff("coste_material")} style={FI2}/></div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-            <div style={{display:"flex",flexDirection:"column",gap:4}}>
-              <label style={{fontSize:11,fontWeight:600,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",marginBottom:4,display:"block"}}>Estado</label>
-              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{ESTADOS_RT.map(s=>{const st=EST_RT[s];return(<button key={s} onClick={()=>setForm(p=>({...p,est:s}))} style={{flex:1,padding:"7px 4px",borderRadius:7,cursor:"pointer",fontSize:11,fontWeight:700,border:`2px solid ${form.est===s?st.bd:"#e5e7eb"}`,background:form.est===s?st.bg:"#fff",color:form.est===s?st.tx:"#9ca3af",whiteSpace:"nowrap"}}>{st.icon} {s}</button>);})}</div>
-            </div>
-            <div style={{display:"flex",flexDirection:"column",gap:4}}>
-              <label style={{fontSize:11,fontWeight:600,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",marginBottom:4,display:"block"}}>Resultado</label>
-              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{RESULTADOS_RT.map(r=>{const rs=RES_RT[r];return(<button key={r} onClick={()=>setForm(p=>({...p,resultado:r}))} style={{flex:1,padding:"7px 4px",borderRadius:7,cursor:"pointer",fontSize:10,fontWeight:700,border:`2px solid ${form.resultado===r?rs.bd:"#e5e7eb"}`,background:form.resultado===r?rs.bg:"#fff",color:form.resultado===r?rs.tx:"#9ca3af"}}>{r}</button>);})}</div>
-            </div>
-          </div>
-          <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"flex-start"}}>
-            {(form.fotos||[]).map((f,i)=>(<div key={i} style={{position:"relative",width:100,height:100}}><img src={f.url} alt={f.nombre} style={{width:100,height:100,objectFit:"cover",borderRadius:8,border:"1px solid #e5e7eb"}}/><button onClick={()=>removeFoto(i)} style={{position:"absolute",top:3,right:3,background:"rgba(0,0,0,.55)",border:"none",color:"#fff",borderRadius:"50%",width:20,height:20,cursor:"pointer",fontSize:11,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button></div>))}
-            <label style={{width:100,height:100,border:"2px dashed #d1d5db",borderRadius:8,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",background:"#f9fafb",gap:4}}><input type="file" accept="image/*" onChange={addFoto} style={{display:"none"}}/><span style={{fontSize:24,color:"#9ca3af"}}>📷</span><span style={{fontSize:10,color:"#9ca3af",textAlign:"center"}}>Añadir foto</span></label>
-          </div>
-        </div>
-        <div style={{padding:"12px 20px",borderTop:"1px solid #f3f4f6",display:"flex",justifyContent:"space-between",alignItems:"center",background:"#fafafa",flexShrink:0}}>
-          <div style={{fontSize:11,color:"#9ca3af"}}>{form.planta} · {form.tipo}</div>
-          <div style={{display:"flex",gap:10}}>
-            <button onClick={onClose} style={{background:"transparent",border:"1px solid #d1d5db",color:"#374151",padding:"7px 16px",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:600}}>Cancelar</button>
-            <button onClick={()=>onGuardar(form)} disabled={!canSave} style={{background:canSave?"#2563eb":"#9ca3af",color:"#fff",border:"none",padding:"7px 20px",borderRadius:7,cursor:canSave?"pointer":"not-allowed",fontSize:12,fontWeight:700}}>{esNuevo?"Crear retrabajo":"Guardar cambios"}</button>
-          </div>
+        <div style={{flex:1,overflowY:"auto",padding:"20px 22px",display:"flex",flexDirection:"column",gap:14}}>{children}</div>
+        <div style={{padding:"14px 22px",borderTop:"1px solid #f3f4f6",display:"flex",justifyContent:"flex-end",gap:10,background:"#fafafa",flexShrink:0}}>
+          <button onClick={onClose} style={MBG}>Cancelar</button>
+          <button onClick={onGuardar} style={MBP}>{btnLabel}</button>
         </div>
       </div>
     </div>
   );
 }
 
-function TabRetrabajos(){
-  const [rts,setRts]=useState(RETRABAJOS_INIT);
-  const [sel,setSel]=useState(null);
-  const [modal,setModal]=useState(false);
-  const [confirm,setConfirm]=useState(false);
-  const [filtEst,setFiltEst]=useState("Todos");
-  const [filtTipo,setFiltTipo]=useState("Todos");
-  const [busca,setBusca]=useState("");
-  const [fotoModal,setFotoModal]=useState(null);
-  const rtSel=rts.find(r=>r.id===sel);
-  const pendientes=rts.filter(r=>r.est==="Pendiente").length;
-  const costeTotal=rts.reduce((s,r)=>s+(r.coste_mano_obra||0)+(r.coste_material||0),0);
-  const conformes=rts.filter(r=>r.resultado==="Conforme").length;
-  const tasaConf=rts.length>0?Math.round((conformes/rts.length)*100):0;
-  let vis=rts;
-  if(filtEst!=="Todos")vis=vis.filter(r=>r.est===filtEst);
-  if(filtTipo!=="Todos")vis=vis.filter(r=>r.tipo===filtTipo);
-  if(busca.trim())vis=vis.filter(r=>r.id?.toLowerCase().includes(busca.toLowerCase())||r.desc?.toLowerCase().includes(busca.toLowerCase())||r.of?.toLowerCase().includes(busca.toLowerCase())||r.operario?.toLowerCase().includes(busca.toLowerCase()));
-  function guardar(form){
-    const esNuevo=!rts.find(r=>r.id===form.id);
-    if(esNuevo){const ahora=new Date();const nuevo={...form,id:`RT-${ahora.getFullYear()}-${String(rts.length+1).padStart(3,"0")}`,f:ahora.toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit"}),historial:[{ts:ahora.getTime(),accion:"Retrabajo creado",usuario:form.resp||"Sistema",estado:"Pendiente"}]};setRts(p=>[nuevo,...p]);setSel(nuevo.id);}
-    else{setRts(p=>p.map(r=>r.id===form.id?form:r));}
-    setModal(false);
+// ─── MODAL NUEVO RETRABAJO ────────────────────────────────────────
+function ModalNuevo({ total, onClose, onGuardar }) {
+  const [f, setF] = useState({
+    fecha: new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit",year:"numeric"}),
+    hora:  new Date().toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"}),
+    of:"", cli:"", maq:"", proceso:PROCESOS[0],
+    motivo:MOTIVOS[0], kg:"", uds:"",
+    desc:"", operario:OPERARIOS[0], resp_calidad:OPERARIOS[0],
+    accion:"", resultado:"Pendiente",
+    coste_hora:"", horas:"", material_extra:"0",
+    origen_nc:"", obs:"",
+  });
+  const ff = k => e => setF(p=>({...p,[k]:e.target.value}));
+
+  function guardar() {
+    if (!f.of.trim() || !f.desc.trim() || !f.kg) return alert("Rellena OF, descripción y kg afectados");
+    onGuardar({
+      id: `RT-${new Date().getFullYear()}-${String(total+1).padStart(3,"0")}`,
+      ...f,
+      cli: f.cli ? parseInt(f.cli) : null,
+      kg: parseFloat(f.kg)||0,
+      uds: parseInt(f.uds)||0,
+      coste_hora: parseFloat(f.coste_hora)||0,
+      horas: parseFloat(f.horas)||0,
+      material_extra: parseFloat(f.material_extra)||0,
+    });
   }
-  function eliminar(){setRts(p=>p.filter(r=>r.id!==sel));setSel(null);setConfirm(false);}
-  return(
-    <div style={{display:"flex",flexDirection:"column",gap:12}}>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(120px,1fr))",gap:10}}>
-        {[{l:"Pendientes",v:pendientes,c:pendientes>0?"#92400e":undefined},{l:"En proceso",v:rts.filter(r=>r.est==="En proceso").length,c:"#1d4ed8"},{l:"Finalizados",v:rts.filter(r=>r.est==="Finalizado").length,c:"#166534"},{l:"Rechazados",v:rts.filter(r=>r.est==="Rechazado").length,c:"#b91c1c"},{l:"Tasa conform.",v:`${tasaConf}%`,c:tasaConf>=80?"#166534":"#b91c1c"},{l:"Coste total",v:`${costeTotal.toLocaleString()} €`,c:costeTotal>500?"#b91c1c":undefined}].map(k=>(<div key={k.l} style={{background:"#f8fafc",border:"0.5px solid #e2e8f0",borderRadius:10,padding:"11px 14px"}}><div style={{fontSize:10,color:"#9ca3af",textTransform:"uppercase",letterSpacing:".05em",fontWeight:500,marginBottom:4}}>{k.l}</div><div style={{fontSize:20,fontWeight:700,color:k.c||"#111827"}}>{k.v}</div></div>))}
-      </div>
-      {pendientes>0&&<div style={{background:"#fffbeb",border:"0.5px solid #fde68a",borderRadius:8,padding:"8px 14px",fontSize:12,color:"#92400e"}}>⏳ {pendientes} retrabajo{pendientes>1?"s":""} pendiente{pendientes>1?"s":""} de asignar operario</div>}
-      <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
-        <input value={busca} onChange={e=>setBusca(e.target.value)} placeholder="Buscar RT, OF, operario…" style={{border:"0.5px solid var(--color-border-tertiary)",background:"var(--color-background-secondary)",color:"var(--color-text-primary)",padding:"7px 10px",borderRadius:6,fontSize:12,outline:"none",maxWidth:220}}/>
-        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{["Todos",...ESTADOS_RT].map(e=>{const s=EST_RT[e]||{};return(<button key={e} onClick={()=>setFiltEst(e)} style={{padding:"4px 10px",borderRadius:5,cursor:"pointer",fontSize:11,border:`0.5px solid ${filtEst===e?(s.bd||"#93c5fd"):"#e5e7eb"}`,background:filtEst===e?(s.bg||"#eff6ff"):"#f9fafb",color:filtEst===e?(s.tx||"#1d4ed8"):"#6b7280",fontWeight:filtEst===e?600:400}}>{s.icon||""} {e}</button>);})}</div>
-        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{["Todos",...TIPOS_RETRABAJO].map(t=>(<button key={t} onClick={()=>setFiltTipo(t)} style={{padding:"4px 10px",borderRadius:5,cursor:"pointer",fontSize:11,border:`0.5px solid ${filtTipo===t?"#a78bfa":"#e5e7eb"}`,background:filtTipo===t?"#faf5ff":"#f9fafb",color:filtTipo===t?"#5b21b6":"#6b7280",fontWeight:filtTipo===t?600:400}}>{t}</button>))}</div>
-        <button onClick={()=>setModal({rt:null})} style={{marginLeft:"auto",background:"#2563eb",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:600,padding:"7px 14px"}}>+ Nuevo retrabajo</button>
-      </div>
-      <div style={{display:"flex",gap:14}}>
-        <div style={{width:300,flexShrink:0,display:"flex",flexDirection:"column",gap:5,maxHeight:600,overflowY:"auto"}}>
-          {vis.map(r=>{const act=sel===r.id;const st=EST_RT[r.est]||EST_RT.Pendiente;return(<div key={r.id} onClick={()=>setSel(r.id)} style={{padding:"10px 12px",borderRadius:9,cursor:"pointer",border:`1.5px solid ${act?"#2563eb":st.bd}`,borderLeft:`3px solid ${st.tx}`,background:act?"#eff6ff":"#fff"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}><span style={{fontFamily:"monospace",fontWeight:700,fontSize:11,color:act?"#1d4ed8":st.tx}}>{r.id}</span><span style={{fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:3,background:st.bg,color:st.tx,border:`0.5px solid ${st.bd}`}}>{st.icon} {r.est}</span></div><div style={{fontSize:12,fontWeight:500,marginBottom:3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.desc?.slice(0,45)||"—"}</div><div style={{fontSize:10,color:"#9ca3af",display:"flex",gap:5}}><span>{r.f}</span><span>·</span><span>{r.tipo}</span><span>·</span><span>{r.maq||"—"}</span></div>{(r.coste_mano_obra+r.coste_material)>0&&(<div style={{fontSize:10,color:"#6b7280",marginTop:2}}>💶 {(r.coste_mano_obra+r.coste_material).toLocaleString()} €</div>)}</div>);})}
-          {vis.length===0&&<div style={{textAlign:"center",padding:20,color:"#9ca3af",fontSize:12}}>Sin resultados</div>}
-        </div>
-        {rtSel?(
-          <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",gap:10}}>
-            <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
-              <button onClick={()=>setModal({rt:rtSel})} style={{fontSize:11,padding:"5px 12px",borderRadius:6,border:"0.5px solid #93c5fd",background:"#eff6ff",color:"#1d4ed8",cursor:"pointer",fontWeight:600}}>✏ Editar</button>
-              <button onClick={()=>setConfirm(true)} style={{fontSize:11,padding:"5px 12px",borderRadius:6,border:"0.5px solid #fca5a5",background:"#fef2f2",color:"#b91c1c",cursor:"pointer",fontWeight:600}}>🗑 Eliminar</button>
-            </div>
-            <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:12,padding:"14px 16px"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-                <div><div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4}}><span style={{fontSize:17,fontWeight:700,color:"#111827"}}>{rtSel.id}</span>{(()=>{const st=EST_RT[rtSel.est]||EST_RT.Pendiente;const rs=RES_RT[rtSel.resultado]||{};return(<><span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:4,background:st.bg,color:st.tx,border:`0.5px solid ${st.bd}`}}>{st.icon} {rtSel.est}</span><span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:4,background:rs.bg,color:rs.tx,border:`0.5px solid ${rs.bd}`}}>{rtSel.resultado}</span></>);})()}</div><div style={{fontSize:11,color:"#6b7280"}}>{rtSel.tipo} · {rtSel.causa} · {rtSel.maq||"—"} · {rtSel.planta}</div></div>
-                <div style={{textAlign:"right"}}><div style={{fontFamily:"monospace",fontSize:12,fontWeight:700}}>{rtSel.of}</div><div style={{fontSize:10,color:"#9ca3af"}}>{rtSel.f}</div></div>
-              </div>
-              <div style={{fontSize:13,padding:"8px 12px",background:"#f8fafc",borderRadius:8,marginBottom:10,lineHeight:1.5}}>{rtSel.desc}</div>
-              {rtSel.obs&&<div style={{fontSize:12,padding:"7px 10px",background:"#fffbeb",border:"0.5px solid #fde68a",borderRadius:7,color:"#92400e",marginBottom:10}}>{rtSel.obs}</div>}
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:8}}>{[["Cliente",rtSel.cli?cn(rtSel.cli):"—"],["Operario",rtSel.operario||"—"],["Responsable",rtSel.resp||"—"],["Kg",rtSel.kg_afectados?`${rtSel.kg_afectados} kg`:"—"],["Uds",rtSel.uds_afectadas||"—"],["T.estim.",rtSel.t_estimado?`${rtSel.t_estimado}h`:"—"],["T.real",rtSel.t_real?`${rtSel.t_real}h`:"—"],["M.O.",rtSel.coste_mano_obra?`${rtSel.coste_mano_obra}€`:"—"],["Material",rtSel.coste_material?`${rtSel.coste_material}€`:"—"]].map(([k,v])=>(<div key={k} style={{background:"#f8fafc",borderRadius:6,padding:"6px 9px"}}><div style={{fontSize:9,color:"#9ca3af",textTransform:"uppercase",letterSpacing:".05em",marginBottom:2}}>{k}</div><div style={{fontSize:11.5,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{v}</div></div>))}</div>
-            </div>
-            {(rtSel.fotos||[]).length>0&&(<div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,padding:"12px 14px"}}><div style={{fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",marginBottom:8}}>📷 Fotografías</div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}>{rtSel.fotos.map((f,i)=>(<img key={i} src={f.url} alt={f.nombre} onClick={()=>setFotoModal(f.url)} style={{width:90,height:70,objectFit:"cover",borderRadius:7,border:"1px solid #e5e7eb",cursor:"pointer"}}/>))}</div></div>)}
-            <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,padding:"12px 14px"}}>
-              <div style={{fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",marginBottom:8}}>📋 Historial</div>
-              <div style={{display:"flex",flexDirection:"column",gap:6}}>{(rtSel.historial||[]).slice().reverse().map((h,i)=>{const st=EST_RT[h.estado]||EST_RT.Pendiente;return(<div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"6px 0",borderBottom:"0.5px solid #f3f4f6"}}><span style={{fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:3,background:st.bg,color:st.tx,border:`0.5px solid ${st.bd}`,flexShrink:0,marginTop:1}}>{st.icon} {h.estado}</span><div style={{flex:1}}><div style={{fontSize:12,color:"#374151"}}>{h.accion}</div><div style={{fontSize:10,color:"#9ca3af"}}>{h.usuario} · {new Date(h.ts).toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit",year:"numeric"})}</div></div></div>);})}
-              </div>
-            </div>
+
+  return (
+    <Modal titulo="Nuevo Retrabajo" subtitulo="Registra un evento de retrabajo o reproceso" onClose={onClose} onGuardar={guardar} btnLabel="Registrar Retrabajo">
+      <Sep label="Identificación"/>
+      <R3 c={[
+        <Campo label="Fecha"><input style={MI} value={f.fecha} onChange={ff("fecha")}/></Campo>,
+        <Campo label="Hora"><input style={MI} value={f.hora} onChange={ff("hora")}/></Campo>,
+        <Campo label="OF vinculada" required><input style={MI} placeholder="OF-XXXX" value={f.of} onChange={ff("of")}/></Campo>,
+      ]}/>
+      <R2 c={[
+        <Campo label="Cliente">
+          <select style={MI} value={f.cli} onChange={ff("cli")}>
+            <option value="">— Selecciona —</option>
+            {CLIENTES.map(c=><option key={c.id} value={c.id}>{c.n}</option>)}
+          </select>
+        </Campo>,
+        <Campo label="Máquina">
+          <select style={MI} value={f.maq} onChange={ff("maq")}>
+            <option value="">— Selecciona —</option>
+            {MAQUINAS.map(m=><option key={m.id} value={m.id}>{m.id} — {m.n}</option>)}
+          </select>
+        </Campo>,
+      ]}/>
+      <R2 c={[
+        <Campo label="Proceso">
+          <select style={MI} value={f.proceso} onChange={ff("proceso")}>
+            {PROCESOS.map(p=><option key={p}>{p}</option>)}
+          </select>
+        </Campo>,
+        <Campo label="Motivo del Retrabajo" required>
+          <select style={MI} value={f.motivo} onChange={ff("motivo")}>
+            {MOTIVOS.map(m=><option key={m}>{m}</option>)}
+          </select>
+        </Campo>,
+      ]}/>
+
+      <Sep label="Afectación"/>
+      <R2 c={[
+        <Campo label="Kg afectados" required><input style={MI} type="number" min="0" placeholder="0" value={f.kg} onChange={ff("kg")}/></Campo>,
+        <Campo label="Unidades afectadas"><input style={MI} type="number" min="0" placeholder="0" value={f.uds} onChange={ff("uds")}/></Campo>,
+      ]}/>
+      <Campo label="Descripción del defecto" required>
+        <textarea style={{...MI,minHeight:70,resize:"vertical"}} placeholder="Describe el defecto detectado..." value={f.desc} onChange={ff("desc")}/>
+      </Campo>
+
+      <Sep label="Gestión"/>
+      <R2 c={[
+        <Campo label="Operario">
+          <select style={MI} value={f.operario} onChange={ff("operario")}>
+            {OPERARIOS.map(o=><option key={o}>{o}</option>)}
+          </select>
+        </Campo>,
+        <Campo label="Responsable Calidad">
+          <select style={MI} value={f.resp_calidad} onChange={ff("resp_calidad")}>
+            {OPERARIOS.map(o=><option key={o}>{o}</option>)}
+          </select>
+        </Campo>,
+      ]}/>
+      <Campo label="Acción tomada">
+        <textarea style={{...MI,minHeight:60,resize:"vertical"}} placeholder="Describe la acción correctiva..." value={f.accion} onChange={ff("accion")}/>
+      </Campo>
+      <Campo label="Resultado">
+        <select style={MI} value={f.resultado} onChange={ff("resultado")}>
+          {RESULTADOS.map(r=><option key={r}>{r}</option>)}
+        </select>
+      </Campo>
+
+      <Sep label="Coste estimado"/>
+      <R3 c={[
+        <Campo label="Coste/hora (€)"><input style={MI} type="number" min="0" step="0.1" placeholder="0.00" value={f.coste_hora} onChange={ff("coste_hora")}/></Campo>,
+        <Campo label="Horas dedicadas"><input style={MI} type="number" min="0" step="0.5" placeholder="0" value={f.horas} onChange={ff("horas")}/></Campo>,
+        <Campo label="Material extra (€)"><input style={MI} type="number" min="0" step="0.1" placeholder="0.00" value={f.material_extra} onChange={ff("material_extra")}/></Campo>,
+      ]}/>
+
+      <Sep label="Trazabilidad"/>
+      <R2 c={[
+        <Campo label="NC vinculada"><input style={MI} placeholder="NC-XXXX-XXX (opcional)" value={f.origen_nc} onChange={ff("origen_nc")}/></Campo>,
+        <Campo label="Observaciones"><input style={MI} placeholder="..." value={f.obs} onChange={ff("obs")}/></Campo>,
+      ]}/>
+    </Modal>
+  );
+}
+
+// ─── MODAL DETALLE / EDITAR ───────────────────────────────────────
+function ModalDetalle({ rt, onClose, onActualizar }) {
+  const [resultado, setResultado] = useState(rt.resultado);
+  const [accion,    setAccion]    = useState(rt.accion);
+  const [obs,       setObs]       = useState(rt.obs);
+  const costeTotal = (rt.coste_hora * rt.horas) + rt.material_extra;
+  const sty = badgeResultado(resultado);
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:600,padding:16}}
+         onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div style={{background:"#fff",borderRadius:14,width:680,maxWidth:"98%",maxHeight:"92vh",display:"flex",flexDirection:"column",boxShadow:"0 25px 50px rgba(0,0,0,.25)",overflow:"hidden"}}>
+        {/* Header */}
+        <div style={{padding:"18px 22px",borderBottom:"1px solid #f3f4f6",background:"#fafafa",display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexShrink:0}}>
+          <div>
+            <div style={{fontWeight:700,fontSize:16,color:"#111827"}}>{rt.id}</div>
+            <div style={{fontSize:12,color:"#6b7280",marginTop:2}}>{rt.fecha} · {rt.hora} · OF: {rt.of}</div>
           </div>
-        ):(
-          <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:10,color:"#9ca3af",fontSize:13,background:"#f9fafb",borderRadius:12,border:"1px dashed #e5e7eb"}}><span style={{fontSize:40}}>🔧</span><span>← Selecciona un retrabajo para ver el detalle</span></div>
-        )}
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <span style={{...sty,padding:"3px 10px",borderRadius:6,fontSize:12,fontWeight:600,border:`1px solid ${sty.bd}`,background:sty.bg,color:sty.tx}}>{sty.icon} {resultado}</span>
+            <button onClick={onClose} style={{background:"#f3f4f6",border:"none",cursor:"pointer",width:32,height:32,borderRadius:"50%",fontSize:16,color:"#6b7280"}}>✕</button>
+          </div>
+        </div>
+
+        <div style={{flex:1,overflowY:"auto",padding:"20px 22px",display:"flex",flexDirection:"column",gap:16}}>
+          {/* Info principal */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
+            {[
+              ["Cliente", rt.cli ? cn(rt.cli) : "—"],
+              ["Máquina", rt.maq || "—"],
+              ["Proceso", rt.proceso],
+              ["Motivo",  rt.motivo],
+              ["Kg afectados", `${rt.kg} kg`],
+              ["Unidades", rt.uds ? `${rt.uds} uds` : "—"],
+              ["Operario", rt.operario],
+              ["Resp. Calidad", rt.resp_calidad],
+            ].map(([l,v])=>(
+              <div key={l} style={{background:"#f9fafb",borderRadius:8,padding:"8px 12px",border:"1px solid #f3f4f6"}}>
+                <div style={{fontSize:10,color:"#9ca3af",fontWeight:600,textTransform:"uppercase",letterSpacing:".05em",marginBottom:3}}>{l}</div>
+                <div style={{fontSize:12,fontWeight:600,color:"#111827"}}>{v}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Descripción */}
+          <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:8,padding:"12px 14px"}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#92400e",textTransform:"uppercase",marginBottom:6}}>Defecto detectado</div>
+            <div style={{fontSize:13,color:"#111827"}}>{rt.desc}</div>
+          </div>
+
+          {/* Acción */}
+          <Campo label="Acción tomada">
+            <textarea style={{...MI,minHeight:70,resize:"vertical"}} value={accion} onChange={e=>setAccion(e.target.value)}/>
+          </Campo>
+
+          {/* Resultado */}
+          <Campo label="Resultado">
+            <select style={MI} value={resultado} onChange={e=>setResultado(e.target.value)}>
+              {RESULTADOS.map(r=><option key={r}>{r}</option>)}
+            </select>
+          </Campo>
+
+          {/* Coste */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
+            {[
+              ["Coste/hora", `${rt.coste_hora.toFixed(2)} €/h`],
+              ["Horas",      `${rt.horas} h`],
+              ["Mat. extra", `${rt.material_extra.toFixed(2)} €`],
+            ].map(([l,v])=>(
+              <div key={l} style={{background:"#f9fafb",borderRadius:8,padding:"8px 12px",border:"1px solid #f3f4f6",textAlign:"center"}}>
+                <div style={{fontSize:10,color:"#9ca3af",fontWeight:600,textTransform:"uppercase",marginBottom:3}}>{l}</div>
+                <div style={{fontSize:14,fontWeight:700,color:"#111827"}}>{v}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{background:"#eff6ff",border:"1px solid #93c5fd",borderRadius:8,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{fontSize:13,color:"#1d4ed8",fontWeight:600}}>Coste total estimado</span>
+            <span style={{fontSize:18,fontWeight:700,color:"#1d4ed8"}}>{costeTotal.toFixed(2)} €</span>
+          </div>
+
+          {/* Trazabilidad */}
+          {(rt.origen_nc || rt.obs) && (
+            <div style={{fontSize:12,color:"#6b7280",background:"#f9fafb",borderRadius:8,padding:"10px 14px",border:"1px solid #f3f4f6"}}>
+              {rt.origen_nc && <div>🔗 NC vinculada: <strong>{rt.origen_nc}</strong></div>}
+              {rt.obs && <div style={{marginTop:4}}>📝 {rt.obs}</div>}
+            </div>
+          )}
+
+          <Campo label="Observaciones adicionales">
+            <input style={MI} value={obs} onChange={e=>setObs(e.target.value)}/>
+          </Campo>
+        </div>
+
+        <div style={{padding:"14px 22px",borderTop:"1px solid #f3f4f6",display:"flex",justifyContent:"flex-end",gap:10,background:"#fafafa",flexShrink:0}}>
+          <button onClick={onClose} style={MBG}>Cerrar</button>
+          <button onClick={()=>{ onActualizar(rt.id, {resultado,accion,obs}); onClose(); }} style={MBP}>Guardar cambios</button>
+        </div>
       </div>
-      {modal&&<ModalRetrabajo rt={modal.rt} rts={rts} onClose={()=>setModal(false)} onGuardar={guardar}/>}
-      {confirm&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:700}}><div style={{background:"#fff",borderRadius:12,padding:"24px 28px",maxWidth:400,width:"90%",boxShadow:"0 20px 40px rgba(0,0,0,.2)"}}><div style={{fontWeight:700,fontSize:15,marginBottom:8}}>Confirmar eliminación</div><div style={{fontSize:13,color:"#6b7280",marginBottom:20}}>¿Eliminar el retrabajo "{rtSel?.id}"?</div><div style={{display:"flex",justifyContent:"flex-end",gap:10}}><button onClick={()=>setConfirm(false)} style={{background:"transparent",border:"1px solid #d1d5db",color:"#374151",padding:"7px 16px",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:600}}>Cancelar</button><button onClick={eliminar} style={{background:"#dc2626",color:"#fff",border:"none",padding:"7px 16px",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:600}}>Eliminar</button></div></div></div>}
-      {fotoModal&&(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:700}} onClick={()=>setFotoModal(null)}><img src={fotoModal} alt="foto" style={{maxWidth:"90vw",maxHeight:"88vh",borderRadius:12}}/></div>)}
     </div>
   );
 }
-// ─── MÓDULO PRINCIPAL ─────────────────────────────────────────────
+
+// ─── DASHBOARD KPIs ───────────────────────────────────────────────
+function DashboardRetrabajos({ rts }) {
+  const totalKg    = rts.reduce((a,r)=>a+r.kg, 0);
+  const totalCoste = rts.reduce((a,r)=>a+(r.coste_hora*r.horas)+r.material_extra, 0);
+  const pendientes = rts.filter(r=>r.resultado==="Pendiente").length;
+  const chatarras  = rts.filter(r=>r.resultado.startsWith("Rechazado")).length;
+  const reprocOK   = rts.filter(r=>r.resultado==="Reprocesado OK").length;
+  const tasaExito  = rts.length ? Math.round((reprocOK/rts.length)*100) : 0;
+
+  // Por motivo
+  const porMotivo = MOTIVOS.map(m=>({ m, n:rts.filter(r=>r.motivo===m).length })).filter(x=>x.n>0).sort((a,b)=>b.n-a.n);
+  // Por máquina
+  const porMaq = [...new Set(rts.map(r=>r.maq).filter(Boolean))].map(maq=>({
+    maq, n:rts.filter(r=>r.maq===maq).length, kg:rts.filter(r=>r.maq===maq).reduce((a,r)=>a+r.kg,0)
+  })).sort((a,b)=>b.n-a.n);
+
+  const kpis = [
+    { l:"Total retrabajos", v:rts.length, s:"registros", c:"#111827" },
+    { l:"Kg afectados",     v:`${totalKg} kg`, s:"total acumulado", c:"#d97706" },
+    { l:"Coste total",      v:`${totalCoste.toFixed(0)} €`, s:"estimado acumulado", c:"#dc2626" },
+    { l:"Pendientes",       v:pendientes, s:"sin resolución", c:pendientes>0?"#d97706":"#22c55e" },
+    { l:"Chatarras",        v:chatarras, s:"piezas desechadas", c:chatarras>0?"#dc2626":"#22c55e" },
+    { l:"Tasa éxito",       v:`${tasaExito}%`, s:"reprocesos OK", c:tasaExito>=70?"#22c55e":"#d97706" },
+  ];
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:14}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
+        {kpis.map(k=>(
+          <div key={k.l} style={{background:"var(--color-background-secondary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:10,padding:"12px 16px"}}>
+            <div style={{fontSize:10,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:".05em",fontWeight:500,marginBottom:4}}>{k.l}</div>
+            <div style={{fontSize:22,fontWeight:600,color:k.c}}>{k.v}</div>
+            <div style={{fontSize:10,color:"var(--color-text-secondary)",marginTop:3}}>{k.s}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+        {/* Por motivo */}
+        <div style={{background:"var(--color-background-secondary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:10,padding:"14px 16px"}}>
+          <div style={{fontSize:11,fontWeight:700,color:"var(--color-text-primary)",marginBottom:10,textTransform:"uppercase",letterSpacing:".05em"}}>Por motivo</div>
+          {porMotivo.length === 0 && <div style={{fontSize:12,color:"#9ca3af"}}>Sin datos</div>}
+          {porMotivo.map(({m,n})=>(
+            <div key={m} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
+              <span style={{fontSize:12,color:"var(--color-text-primary)"}}>{m}</span>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <div style={{width:80,height:6,background:"#f3f4f6",borderRadius:3,overflow:"hidden"}}>
+                  <div style={{width:`${(n/rts.length)*100}%`,height:"100%",background:"#2563eb",borderRadius:3}}/>
+                </div>
+                <span style={{fontSize:11,fontWeight:600,color:"#374151",minWidth:16}}>{n}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Por máquina */}
+        <div style={{background:"var(--color-background-secondary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:10,padding:"14px 16px"}}>
+          <div style={{fontSize:11,fontWeight:700,color:"var(--color-text-primary)",marginBottom:10,textTransform:"uppercase",letterSpacing:".05em"}}>Por máquina</div>
+          {porMaq.length === 0 && <div style={{fontSize:12,color:"#9ca3af"}}>Sin datos</div>}
+          {porMaq.map(({maq,n,kg})=>(
+            <div key={maq} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7,paddingBottom:7,borderBottom:"1px solid #f3f4f6"}}>
+              <div>
+                <span style={{fontSize:12,fontWeight:600,color:"var(--color-text-primary)"}}>{maq}</span>
+                <span style={{fontSize:10,color:"#9ca3af",marginLeft:6}}>{kg} kg</span>
+              </div>
+              <span style={{background:"#eff6ff",color:"#1d4ed8",borderRadius:4,padding:"2px 8px",fontSize:11,fontWeight:600}}>{n} retrabajos</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── TABLA DE RETRABAJOS ──────────────────────────────────────────
+function TablaRetrabajos({ rts, onSelect }) {
+  const [filtro, setFiltro]     = useState("");
+  const [filtMot, setFiltMot]   = useState("");
+  const [filtRes, setFiltRes]   = useState("");
+
+  const filtered = useMemo(()=> rts.filter(r => {
+    const txt = filtro.toLowerCase();
+    const matchTxt = !txt || r.id.toLowerCase().includes(txt) || r.of.toLowerCase().includes(txt) || r.desc.toLowerCase().includes(txt) || (r.maq||"").toLowerCase().includes(txt);
+    const matchMot = !filtMot || r.motivo === filtMot;
+    const matchRes = !filtRes || r.resultado === filtRes;
+    return matchTxt && matchMot && matchRes;
+  }), [rts, filtro, filtMot, filtRes]);
+
+  const inp2 = { border:"0.5px solid var(--color-border-tertiary)", background:"var(--color-background-secondary)", color:"var(--color-text-primary)", padding:"6px 10px", borderRadius:6, fontSize:12, outline:"none" };
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        <input style={{...inp2,flex:1,minWidth:180}} placeholder="Buscar ID, OF, máquina, descripción…" value={filtro} onChange={e=>setFiltro(e.target.value)}/>
+        <select style={inp2} value={filtMot} onChange={e=>setFiltMot(e.target.value)}>
+          <option value="">Todos los motivos</option>
+          {MOTIVOS.map(m=><option key={m}>{m}</option>)}
+        </select>
+        <select style={inp2} value={filtRes} onChange={e=>setFiltRes(e.target.value)}>
+          <option value="">Todos los estados</option>
+          {RESULTADOS.map(r=><option key={r}>{r}</option>)}
+        </select>
+      </div>
+
+      <div style={{overflowX:"auto"}}>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+          <thead>
+            <tr style={{background:"var(--color-background-secondary)"}}>
+              {["ID","Fecha","OF","Cliente","Máq.","Motivo","Kg","Resultado","Coste est.",""].map(h=>(
+                <th key={h} style={{padding:"8px 10px",textAlign:"left",fontWeight:600,fontSize:10.5,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:".05em",borderBottom:"1px solid var(--color-border-tertiary)",whiteSpace:"nowrap"}}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length===0 && (
+              <tr><td colSpan={10} style={{padding:"20px",textAlign:"center",color:"#9ca3af",fontSize:12}}>Sin retrabajos que mostrar</td></tr>
+            )}
+            {filtered.map((rt,i)=>{
+              const sty = badgeResultado(rt.resultado);
+              const coste = (rt.coste_hora * rt.horas) + rt.material_extra;
+              return (
+                <tr key={rt.id} style={{borderBottom:"0.5px solid var(--color-border-tertiary)",background:i%2===0?"transparent":"var(--color-background-secondary)",cursor:"pointer"}}
+                    onClick={()=>onSelect(rt)}>
+                  <td style={{padding:"8px 10px",fontFamily:"monospace",fontWeight:600,color:"#2563eb",fontSize:11}}>{rt.id}</td>
+                  <td style={{padding:"8px 10px",color:"var(--color-text-secondary)",whiteSpace:"nowrap"}}>{rt.fecha}</td>
+                  <td style={{padding:"8px 10px",fontFamily:"monospace",fontSize:11}}>{rt.of}</td>
+                  <td style={{padding:"8px 10px"}}>{rt.cli ? cn(rt.cli) : "—"}</td>
+                  <td style={{padding:"8px 10px",fontFamily:"monospace",fontSize:11}}>{rt.maq||"—"}</td>
+                  <td style={{padding:"8px 10px"}}>{rt.motivo}</td>
+                  <td style={{padding:"8px 10px",fontWeight:600}}>{rt.kg} kg</td>
+                  <td style={{padding:"8px 10px"}}>
+                    <span style={{...sty,padding:"2px 8px",borderRadius:5,fontSize:11,fontWeight:600,border:`1px solid ${sty.bd}`,background:sty.bg,color:sty.tx,whiteSpace:"nowrap"}}>
+                      {sty.icon} {rt.resultado}
+                    </span>
+                  </td>
+                  <td style={{padding:"8px 10px",fontWeight:600,color:coste>0?"#dc2626":"#9ca3af"}}>{coste>0?`${coste.toFixed(0)} €`:"—"}</td>
+                  <td style={{padding:"8px 10px"}}>
+                    <button onClick={e=>{e.stopPropagation();onSelect(rt);}} style={{background:"#f3f4f6",border:"none",cursor:"pointer",borderRadius:5,padding:"3px 8px",fontSize:11,color:"#374151"}}>Ver</button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div style={{fontSize:11,color:"var(--color-text-secondary)"}}>{filtered.length} de {rts.length} retrabajos</div>
+    </div>
+  );
+}
+
+// ─── COMPONENTE PRINCIPAL ─────────────────────────────────────────
+function TabRetrabajos() {
+  const [rts, setRts]         = useState(RT_INIT);
+  const [vista, setVista]     = useState("tabla"); // "tabla" | "dashboard"
+  const [modalNuevo, setModalNuevo]   = useState(false);
+  const [seleccionado, setSeleccionado] = useState(null);
+
+  function guardarNuevo(rt) {
+    setRts(p=>[rt,...p]);
+    setModalNuevo(false);
+  }
+
+  function actualizarRt(id, cambios) {
+    setRts(p=>p.map(r=>r.id===id?{...r,...cambios}:r));
+  }
+
+  const pendientes = rts.filter(r=>r.resultado==="Pendiente").length;
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:12}}>
+      {/* Cabecera */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+        <div style={{display:"flex",gap:6}}>
+          <button onClick={()=>setVista("tabla")} style={{...MB,background:vista==="tabla"?"#1e293b":"#f1f5f9",color:vista==="tabla"?"#fff":"#374151",padding:"6px 14px",fontSize:12}}>
+            ☰ Listado
+          </button>
+          <button onClick={()=>setVista("dashboard")} style={{...MB,background:vista==="dashboard"?"#1e293b":"#f1f5f9",color:vista==="dashboard"?"#fff":"#374151",padding:"6px 14px",fontSize:12}}>
+            ◈ Dashboard
+          </button>
+        </div>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          {pendientes > 0 && (
+            <span style={{background:"#fffbeb",border:"1px solid #fde68a",color:"#92400e",borderRadius:6,padding:"4px 10px",fontSize:11,fontWeight:600}}>
+              ⏳ {pendientes} pendiente{pendientes>1?"s":""}
+            </span>
+          )}
+          <button onClick={()=>setModalNuevo(true)} style={{...MBP,padding:"7px 16px",fontSize:12}}>
+            + Nuevo Retrabajo
+          </button>
+        </div>
+      </div>
+
+      {pendientes > 0 && vista==="tabla" && (
+        <Al type="w">⚠ Hay {pendientes} retrabajo{pendientes>1?"s":""} pendiente{pendientes>1?"s":""} de resolución. Haz clic en cada uno para actualizar su resultado.</Al>
+      )}
+
+      {vista === "tabla"     && <TablaRetrabajos rts={rts} onSelect={setSeleccionado}/>}
+      {vista === "dashboard" && <DashboardRetrabajos rts={rts}/>}
+
+      {modalNuevo    && <ModalNuevo total={rts.length} onClose={()=>setModalNuevo(false)} onGuardar={guardarNuevo}/>}
+      {seleccionado  && <ModalDetalle rt={seleccionado} onClose={()=>setSeleccionado(null)} onActualizar={actualizarRt}/>}
+    </div>
+  );
+}
+
 export default function Calidad(){
   const { ncs, setNcs, ctrl, bloqueadas, setBloqueadas } = useContext(ERPContext);
 
@@ -1757,14 +2092,14 @@ export default function Calidad(){
   const [tab,setTab] = useState("kpis");
   return(
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
-      <Tabs items={[["kpis","Dashboard"],["ncs","No Conformidades"],["retrabajos","🔧 Retrabajos"],["planes","Planes de control"],["prov","Proveedores"],["aud","Auditorías"],["ctrl","Controles"]]} cur={tab} onChange={setTab}/>
+      <Tabs items={[["kpis","Dashboard"],["ncs","No Conformidades"],["planes","Planes de control"],["prov","Proveedores"],["aud","Auditorías"],["ctrl","Controles"],["retrabajos","Retrabajos"]]} cur={tab} onChange={setTab}/>
       {tab==="kpis"   && <TabKPIs    ncs={ncsEnriq}/>}
       {tab==="ncs"    && <TabNCs     ncs={ncsEnriq} setNcs={setNcsEnriq}/>}
       {tab==="planes" && <TabPlanes/>}
       {tab==="prov"   && <TabProveedores/>}
       {tab==="aud"    && <TabAuditorias/>}
-      {tab==="retrabajos"  && <TabRetrabajos/>}
       {tab==="ctrl"   && <TabControles registros={ctrl} bloqueadas={bloqueadas} setBloqueadas={setBloqueadas}/>}
+      {tab==="retrabajos" && <TabRetrabajos/>}
     </div>
   );
 }
