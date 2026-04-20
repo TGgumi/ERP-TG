@@ -1569,13 +1569,6 @@ function TabControles({ registros, bloqueadas, setBloqueadas }){
 // MÓDULO RETRABAJOS
 // ═══════════════════════════════════════════════════════════════════
 // ─── ESTILOS (mismo patrón que Calidad.jsx) ───────────────────────
-const MI  = { border:"1.5px solid #d1d5db", borderRadius:8, padding:"9px 12px", fontSize:13, color:"#111827", background:"#fff", outline:"none", width:"100%", boxSizing:"border-box" };
-const MIS = { ...MI, padding:"7px 10px", fontSize:12 };
-const ML  = { fontSize:11, fontWeight:600, color:"#374151", textTransform:"uppercase", letterSpacing:".05em", marginBottom:4, display:"block" };
-const MB  = { border:"none", borderRadius:7, cursor:"pointer", fontSize:12, fontWeight:600, padding:"7px 16px" };
-const MBP = { ...MB, background:"#2563eb", color:"#fff" };
-const MBD = { ...MB, background:"#dc2626", color:"#fff" };
-const MBG = { ...MB, background:"transparent", border:"1px solid #d1d5db", color:"#374151" };
 
 const OPERARIOS = ["J. García","M. Torres","A. Martín","P. Ramos","D. Gil","C. Font","J. Pérez","F. Cano","R. Mas","L. Vega","Sin asignar"];
 const MOTIVOS   = ["Espesor fuera de spec","Aspecto / color","Adherencia insuficiente","Contaminación","Corrosión","Dimensión fuera de tolerancia","Defecto visual","Otro"];
@@ -2111,4 +2104,4 @@ export default function Calidad(){
       {tab==="retrabajos" && <TabRetrabajos/>}
     </div>
   );
-}s
+}
