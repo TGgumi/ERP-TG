@@ -1611,40 +1611,7 @@ function badgeResultado(r) {
   return { bg:"#f9fafb", tx:"#6b7280", bd:"#e5e7eb", icon:"·" };
 }
 
-function Campo({ label, required, children }) {
-  return <div style={{display:"flex",flexDirection:"column",gap:5}}><label style={ML}>{label}{required&&<span style={{color:"#ef4444",marginLeft:2}}>*</span>}</label>{children}</div>;
-}
-function R2({ c }) { return <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>{c}</div>; }
-function R3({ c }) { return <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14}}>{c}</div>; }
-function Sep({ label }) {
-  return <div style={{display:"flex",alignItems:"center",gap:10,margin:"4px 0"}}>
-    <div style={{flex:1,height:1,background:"#f3f4f6"}}/>
-    <span style={{fontSize:11,fontWeight:600,color:"#9ca3af",textTransform:"uppercase",letterSpacing:".06em",whiteSpace:"nowrap"}}>{label}</span>
-    <div style={{flex:1,height:1,background:"#f3f4f6"}}/>
-  </div>;
-}
 
-function Modal({ titulo, subtitulo, onClose, onGuardar, btnLabel="Guardar", ancho=620, children }) {
-  return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:600,padding:16}}
-         onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
-      <div style={{background:"#fff",borderRadius:14,width:ancho,maxWidth:"98%",maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:"0 25px 50px rgba(0,0,0,.25)",overflow:"hidden"}}>
-        <div style={{padding:"18px 22px",borderBottom:"1px solid #f3f4f6",background:"#fafafa",display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexShrink:0}}>
-          <div>
-            <div style={{fontWeight:700,fontSize:16,color:"#111827"}}>{titulo}</div>
-            {subtitulo&&<div style={{fontSize:12,color:"#6b7280",marginTop:2}}>{subtitulo}</div>}
-          </div>
-          <button onClick={onClose} style={{background:"#f3f4f6",border:"none",cursor:"pointer",width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:"#6b7280",flexShrink:0}}>✕</button>
-        </div>
-        <div style={{flex:1,overflowY:"auto",padding:"20px 22px",display:"flex",flexDirection:"column",gap:14}}>{children}</div>
-        <div style={{padding:"14px 22px",borderTop:"1px solid #f3f4f6",display:"flex",justifyContent:"flex-end",gap:10,background:"#fafafa",flexShrink:0}}>
-          <button onClick={onClose} style={MBG}>Cancelar</button>
-          <button onClick={onGuardar} style={MBP}>{btnLabel}</button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ─── MODAL NUEVO RETRABAJO ────────────────────────────────────────
 function ModalNuevo({ total, onClose, onGuardar }) {
@@ -1676,88 +1643,88 @@ function ModalNuevo({ total, onClose, onGuardar }) {
   }
 
   return (
-    <Modal titulo="Nuevo Retrabajo" subtitulo="Registra un evento de retrabajo o reproceso" onClose={onClose} onGuardar={guardar} btnLabel="Registrar Retrabajo">
-      <Sep label="Identificación"/>
-      <R3 c={[
-        <Campo label="Fecha"><input style={MI} value={f.fecha} onChange={ff("fecha")}/></Campo>,
-        <Campo label="Hora"><input style={MI} value={f.hora} onChange={ff("hora")}/></Campo>,
-        <Campo label="OF vinculada" required><input style={MI} placeholder="OF-XXXX" value={f.of} onChange={ff("of")}/></Campo>,
+    <RT_Modal titulo="Nuevo Retrabajo" subtitulo="Registra un evento de retrabajo o reproceso" onClose={onClose} onGuardar={guardar} btnLabel="Registrar Retrabajo">
+      <RT_Sep label="Identificación"/>
+      <RT_R3 c={[
+        <RT_Campo label="Fecha"><input style={MI} value={f.fecha} onChange={ff("fecha")}/></Campo>,
+        <RT_Campo label="Hora"><input style={MI} value={f.hora} onChange={ff("hora")}/></Campo>,
+        <RT_Campo label="OF vinculada" required><input style={MI} placeholder="OF-XXXX" value={f.of} onChange={ff("of")}/></Campo>,
       ]}/>
-      <Campo label="Referencia Homologación">
+      <RT_Campo label="Referencia Homologación">
         <select style={MI} value={f.ref_hom} onChange={ff("ref_hom")}>
           <option value="">— Selecciona homologación —</option>
           {HOMS.map(h=><option key={h.id} value={h.ref}>{h.ref} — {h.desc}</option>)}
         </select>
       </Campo>
-      <R2 c={[
-        <Campo label="Cliente">
+      <RT_R2 c={[
+        <RT_Campo label="Cliente">
           <select style={MI} value={f.cli} onChange={ff("cli")}>
             <option value="">— Selecciona —</option>
             {CLIENTES.map(c=><option key={c.id} value={c.id}>{c.n}</option>)}
           </select>
         </Campo>,
-        <Campo label="Máquina">
+        <RT_Campo label="Máquina">
           <select style={MI} value={f.maq} onChange={ff("maq")}>
             <option value="">— Selecciona —</option>
             {MAQUINAS.map(m=><option key={m.id} value={m.id}>{m.id} — {m.n}</option>)}
           </select>
         </Campo>,
       ]}/>
-      <R2 c={[
-        <Campo label="Proceso">
+      <RT_R2 c={[
+        <RT_Campo label="Proceso">
           <select style={MI} value={f.proceso} onChange={ff("proceso")}>
             {PROCESOS.map(p=><option key={p}>{p}</option>)}
           </select>
         </Campo>,
-        <Campo label="Motivo del Retrabajo" required>
+        <RT_Campo label="Motivo del Retrabajo" required>
           <select style={MI} value={f.motivo} onChange={ff("motivo")}>
             {MOTIVOS.map(m=><option key={m}>{m}</option>)}
           </select>
         </Campo>,
       ]}/>
 
-      <Sep label="Afectación"/>
-      <R2 c={[
-        <Campo label="Kg afectados" required><input style={MI} type="number" min="0" placeholder="0" value={f.kg} onChange={ff("kg")}/></Campo>,
-        <Campo label="Unidades afectadas"><input style={MI} type="number" min="0" placeholder="0" value={f.uds} onChange={ff("uds")}/></Campo>,
+      <RT_Sep label="Afectación"/>
+      <RT_R2 c={[
+        <RT_Campo label="Kg afectados" required><input style={MI} type="number" min="0" placeholder="0" value={f.kg} onChange={ff("kg")}/></Campo>,
+        <RT_Campo label="Unidades afectadas"><input style={MI} type="number" min="0" placeholder="0" value={f.uds} onChange={ff("uds")}/></Campo>,
       ]}/>
-      <Campo label="Descripción del defecto" required>
+      <RT_Campo label="Descripción del defecto" required>
         <textarea style={{...MI,minHeight:70,resize:"vertical"}} placeholder="Describe el defecto detectado..." value={f.desc} onChange={ff("desc")}/>
       </Campo>
 
-      <Sep label="Gestión"/>
-      <R2 c={[
-        <Campo label="Operario">
+      <RT_Sep label="Gestión"/>
+      <RT_R2 c={[
+        <RT_Campo label="Operario">
           <select style={MI} value={f.operario} onChange={ff("operario")}>
             {OPERARIOS.map(o=><option key={o}>{o}</option>)}
           </select>
         </Campo>,
-        <Campo label="Responsable Calidad">
+        <RT_Campo label="Responsable Calidad">
           <select style={MI} value={f.resp_calidad} onChange={ff("resp_calidad")}>
             {OPERARIOS.map(o=><option key={o}>{o}</option>)}
           </select>
         </Campo>,
       ]}/>
-      <Campo label="Acción tomada">
+      <RT_Campo label="Acción tomada">
         <textarea style={{...MI,minHeight:60,resize:"vertical"}} placeholder="Describe la acción correctiva..." value={f.accion} onChange={ff("accion")}/>
       </Campo>
-      <Campo label="Resultado">
+      <RT_Campo label="Resultado">
         <select style={MI} value={f.resultado} onChange={ff("resultado")}>
           {RESULTADOS.map(r=><option key={r}>{r}</option>)}
         </select>
       </Campo>
 
-      <Sep label="Coste estimado"/>
-      <R3 c={[
-        <Campo label="Coste/hora (€)"><input style={MI} type="number" min="0" step="0.1" placeholder="0.00" value={f.coste_hora} onChange={ff("coste_hora")}/></Campo>,
-        <Campo label="Horas dedicadas"><input style={MI} type="number" min="0" step="0.5" placeholder="0" value={f.horas} onChange={ff("horas")}/></Campo>,
-        <Campo label="Material extra (€)"><input style={MI} type="number" min="0" step="0.1" placeholder="0.00" value={f.material_extra} onChange={ff("material_extra")}/></Campo>,
+      <RT_Sep label="Coste estimado"/>
+      <RT_R3 c={[
+        <RT_Campo label="Coste/hora (€)"><input style={MI} type="number" min="0" step="0.1" placeholder="0.00" value={f.coste_hora} onChange={ff("coste_hora")}/></Campo>,
+        <RT_Campo label="Horas dedicadas"><input style={MI} type="number" min="0" step="0.5" placeholder="0" value={f.horas} onChange={ff("horas")}/></Campo>,
+        <RT_Campo label="Material extra (€)"><input style={MI} type="number" min="0" step="0.1" placeholder="0.00" value={f.material_extra} onChange={ff("material_extra")}/></Campo>,
       ]}/>
 
-      <Sep label="Trazabilidad"/>
-      <R2 c={[
-        <Campo label="NC vinculada"><input style={MI} placeholder="NC-XXXX-XXX (opcional)" value={f.origen_nc} onChange={ff("origen_nc")}/></Campo>,
-        <Campo label="Observaciones"><input style={MI} placeholder="..." value={f.obs} onChange={ff("obs")}/></Campo>,
+      <RT_Sep label="Trazabilidad"/>
+      <RT_R2 c={[
+        <RT_Campo label="NC vinculada"><input style={MI} placeholder="NC-XXXX-XXX (opcional)" value={f.origen_nc} onChange={ff("origen_nc")}/></Campo>,
+        <RT_Campo label="Observaciones"><input style={MI} placeholder="..." value={f.obs} onChange={ff("obs")}/></Campo>,
       ]}/>
     </Modal>
   );
@@ -1815,12 +1782,12 @@ function ModalDetalle({ rt, onClose, onActualizar }) {
           </div>
 
           {/* Acción */}
-          <Campo label="Acción tomada">
+          <RT_Campo label="Acción tomada">
             <textarea style={{...MI,minHeight:70,resize:"vertical"}} value={accion} onChange={e=>setAccion(e.target.value)}/>
           </Campo>
 
           {/* Resultado */}
-          <Campo label="Resultado">
+          <RT_Campo label="Resultado">
             <select style={MI} value={resultado} onChange={e=>setResultado(e.target.value)}>
               {RESULTADOS.map(r=><option key={r}>{r}</option>)}
             </select>
@@ -1852,7 +1819,7 @@ function ModalDetalle({ rt, onClose, onActualizar }) {
             </div>
           )}
 
-          <Campo label="Observaciones adicionales">
+          <RT_Campo label="Observaciones adicionales">
             <input style={MI} value={obs} onChange={e=>setObs(e.target.value)}/>
           </Campo>
         </div>
@@ -2104,4 +2071,3 @@ export default function Calidad(){
       {tab==="retrabajos" && <TabRetrabajos/>}
     </div>
   );
-}
