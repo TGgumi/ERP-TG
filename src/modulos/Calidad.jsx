@@ -1,7 +1,7 @@
 // src/modulos/Calidad.jsx
 import { useContext, useState, useMemo } from "react";
 import { ERPContext } from "../ERP";
-import { CLIENTES, MAQUINAS, cn } from "../datos";
+import { CLIENTES, MAQUINAS, HOMS, cn } from "../datos";
 import { Bdg, Card, Tbl, Tabs, Al, KRow, ck } from "../ui";
 
 // ─── ESTILOS ──────────────────────────────────────────────────────
@@ -1583,25 +1583,25 @@ const PROCESOS  = ["Recubrimiento","Granallado","Desaceitado","Desengrasado","Pr
 const RESULTADOS = ["Pendiente","Aprobado","Rechazado — Chatarra","Reprocesado OK","Reprocesado NOK"];
 
 const RT_INIT = [
-  { id:"RT-2026-001", fecha:"12/03/2026", hora:"09:15", of:"OF-2601", cli:58,  maq:"MN-01",  proceso:"Recubrimiento",
+  { id:"RT-2026-001", fecha:"12/03/2026", hora:"09:15", of:"OF-2601", cli:58,  maq:"MN-01",  proceso:"Recubrimiento", ref_hom:"22824108110",
     motivo:"Espesor fuera de spec", kg:24, uds:480, desc:"Espesor 7μm — mínimo 10μm. Lote parcial zona inferior",
     operario:"J. Pérez", resp_calidad:"M. Torres",
     accion:"Rearranque con parámetros corregidos. Vc aumentado a 290.",
     resultado:"Reprocesado OK", coste_hora:2.4, horas:1.5, material_extra:0,
     origen_nc:"NC-2026-002", obs:"Vinculado a ajuste parámetros MN-01" },
-  { id:"RT-2026-002", fecha:"13/03/2026", hora:"14:30", of:"OF-2604", cli:458, maq:"DC02",   proceso:"Desaceitado",
+  { id:"RT-2026-002", fecha:"13/03/2026", hora:"14:30", of:"OF-2604", cli:458, maq:"DC02",   proceso:"Desaceitado", ref_hom:"8100484951",
     motivo:"Aspecto / color", kg:60, uds:0, desc:"Manchas color no uniforme zona central piezas. Lote completo afectado",
     operario:"D. Gil", resp_calidad:"P. Ramos",
     accion:"Limpieza baño + reproceso piezas afectadas",
     resultado:"Pendiente", coste_hora:2.2, horas:2.0, material_extra:45,
     origen_nc:"NC-2026-004", obs:"" },
-  { id:"RT-2026-003", fecha:"10/03/2026", hora:"11:00", of:"OF-2598", cli:58,  maq:"TWIN44", proceso:"Recubrimiento",
+  { id:"RT-2026-003", fecha:"10/03/2026", hora:"11:00", of:"OF-2598", cli:58,  maq:"TWIN44", proceso:"Recubrimiento", ref_hom:"22824108110",
     motivo:"Defecto visual", kg:15, uds:300, desc:"Piezas con marcas de bastidor — zona de contacto sin recubrimiento",
     operario:"C. Font", resp_calidad:"J. García",
     accion:"Reproceso manual en zona afectada + nueva inspección 100%",
     resultado:"Aprobado", coste_hora:2.4, horas:3.0, material_extra:20,
     origen_nc:"", obs:"Sin NC asociada — detectado en autocontrol" },
-  { id:"RT-2026-004", fecha:"08/03/2026", hora:"16:45", of:"OF-2590", cli:102, maq:"GR-01",  proceso:"Granallado",
+  { id:"RT-2026-004", fecha:"08/03/2026", hora:"16:45", of:"OF-2590", cli:102, maq:"GR-01",  proceso:"Granallado", ref_hom:"46359L12720FT",
     motivo:"Adherencia insuficiente", kg:40, uds:800, desc:"Cross-cut Gt3 — especificación máx Gt1",
     operario:"F. Cano", resp_calidad:"A. Martín",
     accion:"Granallado prolongado 15min extra + revisión parámetros abrasivo",
@@ -1658,7 +1658,7 @@ function ModalNuevo({ total, onClose, onGuardar }) {
   const [f, setF] = useState({
     fecha: new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit",year:"numeric"}),
     hora:  new Date().toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"}),
-    of:"", cli:"", maq:"", proceso:PROCESOS[0],
+    of:"", ref_hom:"", cli:"", maq:"", proceso:PROCESOS[0],
     motivo:MOTIVOS[0], kg:"", uds:"",
     desc:"", operario:OPERARIOS[0], resp_calidad:OPERARIOS[0],
     accion:"", resultado:"Pendiente",
@@ -1673,6 +1673,7 @@ function ModalNuevo({ total, onClose, onGuardar }) {
       id: `RT-${new Date().getFullYear()}-${String(total+1).padStart(3,"0")}`,
       ...f,
       cli: f.cli ? parseInt(f.cli) : null,
+      ref_hom: f.ref_hom || "",
       kg: parseFloat(f.kg)||0,
       uds: parseInt(f.uds)||0,
       coste_hora: parseFloat(f.coste_hora)||0,
@@ -1689,6 +1690,12 @@ function ModalNuevo({ total, onClose, onGuardar }) {
         <Campo label="Hora"><input style={MI} value={f.hora} onChange={ff("hora")}/></Campo>,
         <Campo label="OF vinculada" required><input style={MI} placeholder="OF-XXXX" value={f.of} onChange={ff("of")}/></Campo>,
       ]}/>
+      <Campo label="Referencia Homologación">
+        <select style={MI} value={f.ref_hom} onChange={ff("ref_hom")}>
+          <option value="">— Selecciona homologación —</option>
+          {HOMS.map(h=><option key={h.id} value={h.ref}>{h.ref} — {h.desc}</option>)}
+        </select>
+      </Campo>
       <R2 c={[
         <Campo label="Cliente">
           <select style={MI} value={f.cli} onChange={ff("cli")}>
@@ -1791,6 +1798,7 @@ function ModalDetalle({ rt, onClose, onActualizar }) {
           {/* Info principal */}
           <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
             {[
+              ["Ref. Homologación", rt.ref_hom || "—"],
               ["Cliente", rt.cli ? cn(rt.cli) : "—"],
               ["Máquina", rt.maq || "—"],
               ["Proceso", rt.proceso],
@@ -1973,7 +1981,7 @@ function TablaRetrabajos({ rts, onSelect }) {
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
           <thead>
             <tr style={{background:"var(--color-background-secondary)"}}>
-              {["ID","Fecha","OF","Cliente","Máq.","Motivo","Kg","Resultado","Coste est.",""].map(h=>(
+              {["ID","Fecha","OF","Ref. Hom.","Cliente","Máq.","Motivo","Kg","Resultado","Coste est.",""].map(h=>(
                 <th key={h} style={{padding:"8px 10px",textAlign:"left",fontWeight:600,fontSize:10.5,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:".05em",borderBottom:"1px solid var(--color-border-tertiary)",whiteSpace:"nowrap"}}>{h}</th>
               ))}
             </tr>
@@ -1991,6 +1999,7 @@ function TablaRetrabajos({ rts, onSelect }) {
                   <td style={{padding:"8px 10px",fontFamily:"monospace",fontWeight:600,color:"#2563eb",fontSize:11}}>{rt.id}</td>
                   <td style={{padding:"8px 10px",color:"var(--color-text-secondary)",whiteSpace:"nowrap"}}>{rt.fecha}</td>
                   <td style={{padding:"8px 10px",fontFamily:"monospace",fontSize:11}}>{rt.of}</td>
+                  <td style={{padding:"8px 10px",fontFamily:"monospace",fontSize:11,color:"#6b7280"}}>{rt.ref_hom||"—"}</td>
                   <td style={{padding:"8px 10px"}}>{rt.cli ? cn(rt.cli) : "—"}</td>
                   <td style={{padding:"8px 10px",fontFamily:"monospace",fontSize:11}}>{rt.maq||"—"}</td>
                   <td style={{padding:"8px 10px"}}>{rt.motivo}</td>
