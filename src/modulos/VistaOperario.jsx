@@ -955,6 +955,22 @@ function CalendarioTurnos(){
     </div>
   );
 }
+// ─── CONSTANTES BUZÓN ─────────────────────────────────────────────
+const CATEGORIAS  = ["Seguridad","Maquinaria","Organización","Condiciones de trabajo","Proceso productivo","Comunicación","Otra"];
+const TIPOS       = ["Queja","Mejora","Sugerencia"];
+const PRIORIDADES = ["Baja","Media","Alta","Urgente"];
+const PRIO_COL = {
+  "Baja":    {bg:"#f1f5f9",tx:"#64748b",bd:"#e2e8f0"},
+  "Media":   {bg:"#fef9c3",tx:"#854d0e",bd:"#fde68a"},
+  "Alta":    {bg:"#ffedd5",tx:"#c2410c",bd:"#fed7aa"},
+  "Urgente": {bg:"#fee2e2",tx:"#b91c1c",bd:"#fca5a5"},
+};
+const TIPO_COL = {
+  "Queja":      {bg:"#fee2e2",tx:"#b91c1c",bd:"#fca5a5",ic:"🚨"},
+  "Mejora":     {bg:"#dbeafe",tx:"#1d4ed8",bd:"#93c5fd",ic:"💡"},
+  "Sugerencia": {bg:"#d1fae5",tx:"#065f46",bd:"#6ee7b7",ic:"✨"},
+};
+
 function BuzonMejoras(){
   const { mejoras, setMejoras } = useContext(ERPContext);
   const [modal, setModal] = useState(false);
