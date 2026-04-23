@@ -603,6 +603,7 @@ function CalendarioTurnos(){
   const [año,    setAño]    = useState(HOY2.getFullYear());
   const [turnos, setTurnos] = useState({});
   const [propuestas, setPropuestas] = useState([]);
+  const [modalAsig, setModalAsig] = useState(null); // {op, semanas: 1|2|'ambas'}
   const [modalProp,  setModalProp]  = useState(false);
   const [formProp,   setFormProp]   = useState({de:"",a:"",fecha:"",motivo:""});
 
@@ -611,6 +612,19 @@ function CalendarioTurnos(){
   const DIAS_S  = ["L","M","X","J","V","S","D"];
 
   function setTurno(fecha, op, val){ setTurnos(p=>({...p,[`${fecha}:${op}`]:val})); }
+  function asignarRapido(op, turno, semIdx, soloLaborables){
+    // semIdx: 0=sem1, 1=sem2, 2=ambas
+    const inicio = semIdx===1 ? 7 : 0;
+    const fin    = semIdx===0 ? 7 : 14;
+    const updates = {};
+    for(let i=inicio; i<fin; i++){
+      const d = dias14[i];
+      if(soloLaborables && esFinde(d)) continue;
+      updates[`${fechaStr(d)}:${op}`] = turno;
+    }
+    setTurnos(p=>({...p,...updates}));
+    setModalAsig(null);
+  }
   function getTurno(fecha, op){ return turnos[`${fecha}:${op}`]||""; }
   const fechaStr = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
   const esHoyD   = (d) => fechaStr(d)===fechaStr(HOY2);
@@ -687,10 +701,19 @@ function CalendarioTurnos(){
           <tbody>
             {OPERARIOS.filter(op=>op!=="Sin asignar").map((op,ri)=>(
               <tr key={op} style={{background:ri%2===0?"#fff":"#fafafa"}}>
-                <td style={{padding:"5px 10px",fontWeight:600,color:"#374151",whiteSpace:"nowrap",
+                <td style={{padding:"4px 8px",fontWeight:600,color:"#374151",whiteSpace:"nowrap",
                   position:"sticky",left:0,background:ri%2===0?"#fff":"#fafafa",zIndex:1,
                   borderBottom:"0.5px solid #f1f5f9"}}>
-                  {op}
+                  <div style={{display:"flex",alignItems:"center",gap:6}}>
+                    <span style={{fontSize:11}}>{op}</span>
+                    {modo==="bisemanal"&&(
+                      <button onClick={()=>setModalAsig({op})}
+                        title={`Asignación rápida para ${op}`}
+                        style={{fontSize:9,padding:"1px 5px",borderRadius:3,cursor:"pointer",background:"#eff6ff",border:"0.5px solid #93c5fd",color:"#1d4ed8",fontWeight:700,lineHeight:1.4}}>
+                        ⚡
+                      </button>
+                    )}
+                  </div>
                 </td>
                 {dias.map((d,i)=>{
                   const f=fechaStr(d);
@@ -805,6 +828,83 @@ function CalendarioTurnos(){
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Modal asignación rápida */}
+      {modalAsig&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:700,padding:16}}
+          onClick={e=>{if(e.target===e.currentTarget)setModalAsig(null);}}>
+          <div style={{background:"#fff",borderRadius:12,width:400,maxWidth:"98%",padding:24,boxShadow:"0 25px 60px rgba(0,0,0,.3)"}}>
+            <div style={{fontSize:15,fontWeight:700,color:"#111827",marginBottom:4}}>⚡ Asignación rápida</div>
+            <div style={{fontSize:12,color:"#6b7280",marginBottom:20}}>Asigna turno a <strong>{modalAsig.op}</strong> para múltiples días</div>
+
+            {(()=>{
+              const [turnoSel, setTurnoSel] = [modalAsig.turno||"", (v)=>setModalAsig(p=>({...p,turno:v}))];
+              const [semSel,   setSemSel]   = [modalAsig.sem??2,    (v)=>setModalAsig(p=>({...p,sem:v}))];
+              const [soloLab,  setSoloLab]  = [modalAsig.lab??true,  (v)=>setModalAsig(p=>({...p,lab:v}))];
+              const nDias = (()=>{
+                const i=semSel===0?0:7, f=semSel===1?7:14;
+                return dias14.slice(i,f).filter(d=>soloLab?!esFinde(d):true).length;
+              })();
+              return(
+                <div style={{display:"flex",flexDirection:"column",gap:14}}>
+                  {/* Turno */}
+                  <div>
+                    <div style={{fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",marginBottom:8}}>Turno</div>
+                    <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                      {Object.entries(TURNO_COL).map(([t,c])=>(
+                        <button key={t} onClick={()=>setTurnoSel(t)}
+                          style={{fontSize:11,padding:"6px 12px",borderRadius:6,cursor:"pointer",fontWeight:turnoSel===t?700:500,
+                            background:turnoSel===t?c.bg:"#f8fafc",color:turnoSel===t?c.tx:"#6b7280",
+                            border:turnoSel===t?`1.5px solid ${c.bd}`:"1px solid #e2e8f0"}}>
+                          {TURNO_ICONO[t]} {t}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Semanas */}
+                  <div>
+                    <div style={{fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",marginBottom:8}}>Aplicar a</div>
+                    <div style={{display:"flex",gap:6}}>
+                      {[[0,"Semana 1"],[1,"Semana 2"],[2,"Ambas semanas"]].map(([v,l])=>(
+                        <button key={v} onClick={()=>setSemSel(v)}
+                          style={{fontSize:11,padding:"6px 12px",borderRadius:6,cursor:"pointer",fontWeight:semSel===v?700:500,
+                            background:semSel===v?"#2563eb":"#f8fafc",color:semSel===v?"#fff":"#6b7280",
+                            border:semSel===v?"none":"1px solid #e2e8f0"}}>
+                          {l}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Solo laborables */}
+                  <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",userSelect:"none"}}>
+                    <input type="checkbox" checked={soloLab} onChange={e=>setSoloLab(e.target.checked)}
+                      style={{width:16,height:16,cursor:"pointer",accentColor:"#2563eb"}}/>
+                    <span style={{fontSize:12,color:"#374151"}}>Solo días laborables (excluir sábados y domingos)</span>
+                  </label>
+
+                  {/* Preview */}
+                  {turnoSel&&(
+                    <div style={{background:TURNO_COL[turnoSel]?.bg,border:`1px solid ${TURNO_COL[turnoSel]?.bd}`,borderRadius:8,padding:"10px 14px",fontSize:12,color:TURNO_COL[turnoSel]?.tx,fontWeight:600}}>
+                      {TURNO_ICONO[turnoSel]} Se asignará <strong>{turnoSel}</strong> a <strong>{nDias} días</strong> para {modalAsig.op}
+                    </div>
+                  )}
+
+                  <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:4}}>
+                    <button onClick={()=>setModalAsig(null)} style={{background:"transparent",border:"1px solid #d1d5db",color:"#374151",padding:"7px 16px",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:600}}>Cancelar</button>
+                    <button onClick={()=>turnoSel&&asignarRapido(modalAsig.op,turnoSel,semSel,soloLab)}
+                      disabled={!turnoSel}
+                      style={{background:turnoSel?"#2563eb":"#94a3b8",color:"#fff",border:"none",padding:"7px 18px",borderRadius:7,cursor:turnoSel?"pointer":"not-allowed",fontSize:12,fontWeight:700}}>
+                      ⚡ Asignar {nDias} días
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
