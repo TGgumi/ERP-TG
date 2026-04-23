@@ -132,7 +132,7 @@ function FTag({f}){
   return<span style={{display:"inline-flex",padding:"1px 5px",borderRadius:4,fontSize:9.5,fontWeight:700,background:c+"22",color:c,border:`0.5px solid ${c}55`}}>{f}</span>;
 }
 
-function OFRow({o,maq,onNC,onOK,onDeshacer,confirmadas,bloqueadas}){
+function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,confirmadas,bloqueadas}){
   const s=SC[sem(o.fentrega)];
   const c=cic(o,maq);
   const a=atr(o.fentrega);
@@ -203,13 +203,18 @@ function OFRow({o,maq,onNC,onOK,onDeshacer,confirmadas,bloqueadas}){
             )}
           </div>
         )}
-        {bloq&&<div style={{fontSize:9,color:"#b91c1c",marginTop:6,fontWeight:600}}>🔒 Revisión pendiente</div>}
+        {bloq&&(
+          <div style={{display:"flex",gap:4,marginTop:6,justifyContent:"flex-end",alignItems:"center"}}>
+            <span style={{fontSize:9,color:"#b91c1c",fontWeight:600}}>🔒 Revisión pendiente</span>
+            <button onClick={()=>onDeshacerNC&&onDeshacerNC(o,bloq)} style={{fontSize:10,padding:"3px 9px",borderRadius:5,cursor:"pointer",background:"rgba(234,179,8,.15)",border:"0.5px solid rgba(234,179,8,.5)",color:"#854d0e",fontWeight:700}}>↩ Deshacer NC</button>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-function HornoCard({maq,num,ofs_h,onNC,onOK,onDeshacer,confirmadas,bloqueadas}){
+function HornoCard({maq,num,ofs_h,onNC,onOK,onDeshacer,onDeshacerNC,confirmadas,bloqueadas}){
   const [open,setOpen]=useState(true);
   const tot=ofs_h.reduce((s,o)=>s+cic(o,maq),0);
   const ok=tot>=HMIN&&tot<=HMAX;
@@ -238,14 +243,14 @@ function HornoCard({maq,num,ofs_h,onNC,onOK,onDeshacer,confirmadas,bloqueadas}){
       </div>
       {open&&(
         <div style={{paddingLeft:6,paddingTop:5,display:"flex",flexDirection:"column",gap:4}}>
-          {ofs_h.map((o,i)=><OFRow key={`${o.of}-${i}`} o={o} maq={maq} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} confirmadas={confirmadas} bloqueadas={bloqueadas}/>)}
+          {ofs_h.map((o,i)=><OFRow key={`${o.of}-${i}`} o={o} maq={maq} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} confirmadas={confirmadas} bloqueadas={bloqueadas}/>)}
         </div>
       )}
     </div>
   );
 }
 
-function VistaMaquina({maq,plan,usaHornos,est,onCambiarEst,onNC,onOK,onDeshacer,confirmadas,bloqueadas}){
+function VistaMaquina({maq,plan,usaHornos,est,onCambiarEst,onNC,onOK,onDeshacer,onDeshacerNC,confirmadas,bloqueadas}){
   const col=EC[est]||EC["Espera"];
   const hornos={};
   if(usaHornos){plan.forEach(o=>{const h=o.horno||1;if(!hornos[h])hornos[h]=[];hornos[h].push(o);});}
@@ -282,12 +287,12 @@ function VistaMaquina({maq,plan,usaHornos,est,onCambiarEst,onNC,onOK,onDeshacer,
         ):usaHornos?(
           // Vista con hornos (TWIN44, TWIN02, MN-01)
           Object.entries(hornos).map(([h,ofs_h])=>(
-            <HornoCard key={h} maq={maq} num={+h} ofs_h={ofs_h} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} confirmadas={confirmadas} bloqueadas={bloqueadas}/>
+            <HornoCard key={h} maq={maq} num={+h} ofs_h={ofs_h} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} confirmadas={confirmadas} bloqueadas={bloqueadas}/>
           ))
         ):(
           // Vista sin hornos — lista directa
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            {plan.map((o,i)=><OFRow key={`${o.of}-${i}`} o={o} maq={maq} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} confirmadas={confirmadas} bloqueadas={bloqueadas}/>)}
+            {plan.map((o,i)=><OFRow key={`${o.of}-${i}`} o={o} maq={maq} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} confirmadas={confirmadas} bloqueadas={bloqueadas}/>)}
           </div>
         )}
       </div>
@@ -568,6 +573,18 @@ export default function VistaOperario(){
     const key = `${of_.of}:${maqId}`;
     setConfirmadas(prev => { const s = new Set(prev); s.delete(key); return s; });
   }
+  function deshacerNC(of_, bloq){
+    // Quitar bloqueo
+    setBloqueadas(p => p.filter(b => !(b.ofId === of_.of && b.maqId === bloq.maqId)));
+    // Borrar NC asociada de Calidad (por ctrlId o por descripción de OF)
+    if(bloq.ctrlId){
+      setNcTurno(p => p.filter(n => n.id !== bloq.ctrlId && !n.id.includes('NC-T-'+(bloq.ctrlId))));
+      setNcs(p => p.filter(n => !(n.ofBloqueada === of_.of && n.maq === bloq.maqId)));
+    } else {
+      setNcs(p => p.filter(n => !(n.ofBloqueada === of_.of && n.maq === bloq.maqId)));
+      setNcTurno(p => p.filter(n => !(n.ofBloqueada === of_.of && n.maq === bloq.maqId)));
+    }
+  }
   function confirmarOF(of_, maqId){
     const key = `${of_.of}:${maqId}`;
     setConfirmadas(prev => { const s = new Set(prev); s.add(key); return s; });
@@ -703,6 +720,7 @@ export default function VistaOperario(){
           onNC={o=>setMNC({maqId:maqActiva,of_:o})}
           onOK={handleOK}
           onDeshacer={o=>desconfirmarOF(o,maqActiva)}
+          onDeshacerNC={(o,bloq)=>deshacerNC(o,bloq)}
           confirmadas={confirmadas}
           bloqueadas={bloqueadas}
         />
