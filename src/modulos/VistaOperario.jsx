@@ -1112,7 +1112,7 @@ function BuzonMejoras(){
             </div>
             <div style={{padding:"14px 20px",borderTop:"1px solid #f3f4f6",display:"flex",justifyContent:"flex-end",gap:10,background:"#fafafa"}}>
               <button onClick={()=>setModal(false)} style={{background:"transparent",border:"1px solid #d1d5db",color:"#374151",padding:"7px 16px",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:600}}>Cancelar</button>
-              <button onClick={enviar} disabled={!form.operario||!form.texto.trim()}
+              <button onClick={enviar} disabled={!form.texto.trim()}
                 style={{background:"#2563eb",color:"#fff",border:"none",padding:"7px 18px",borderRadius:7,cursor:form.texto.trim()?"pointer":"not-allowed",fontSize:12,fontWeight:700,opacity:form.texto.trim()?1:.45}}>
                 Enviar
               </button>
