@@ -771,6 +771,230 @@ function CalendarioTurnos(){
   );
 }
 
+
+// ─── BUZÓN DE QUEJAS Y MEJORAS ────────────────────────────────────
+const CATEGORIAS = ["Seguridad","Maquinaria","Organización","Condiciones de trabajo","Proceso productivo","Comunicación","Otra"];
+const TIPOS = ["Queja","Mejora","Sugerencia"];
+const PRIORIDADES = ["Baja","Media","Alta","Urgente"];
+const PRIO_COL = {
+  "Baja":    {bg:"#f1f5f9",tx:"#64748b",bd:"#e2e8f0"},
+  "Media":   {bg:"#fef9c3",tx:"#854d0e",bd:"#fde68a"},
+  "Alta":    {bg:"#ffedd5",tx:"#c2410c",bd:"#fed7aa"},
+  "Urgente": {bg:"#fee2e2",tx:"#b91c1c",bd:"#fca5a5"},
+};
+const TIPO_COL = {
+  "Queja":     {bg:"#fee2e2",tx:"#b91c1c",bd:"#fca5a5",ic:"🚨"},
+  "Mejora":    {bg:"#dbeafe",tx:"#1d4ed8",bd:"#93c5fd",ic:"💡"},
+  "Sugerencia":{bg:"#d1fae5",tx:"#065f46",bd:"#6ee7b7",ic:"✨"},
+};
+
+function BuzonMejoras(){
+  const [entradas, setEntradas] = useState([
+    {id:"BM-001",ts:"08/04 09:15",operario:"J. García",tipo:"Mejora",categoria:"Maquinaria",prio:"Media",texto:"La PRE-02 tarda demasiado en calentar al inicio del turno. Convendría dejarla en standby entre turnos en lugar de apagarla.",est:"Revisando",resp:"M. Torres"},
+    {id:"BM-002",ts:"10/04 14:30",operario:"C. Font",tipo:"Queja",categoria:"Condiciones de trabajo",prio:"Alta",texto:"La iluminación de la zona de granallado es insuficiente. Hay que esforzar mucho la vista para revisar las piezas.",est:"Pendiente",resp:""},
+    {id:"BM-003",ts:"15/04 07:45",operario:"D. Gil",tipo:"Sugerencia",categoria:"Organización",prio:"Baja",texto:"Sería útil tener una pizarra digital en cada línea con las OFs del día para no tener que consultar siempre el ordenador.",est:"Implementada",resp:"J. Pérez"},
+  ]);
+  const [modal, setModal] = useState(false);
+  const [detalle, setDetalle] = useState(null);
+  const [form, setForm] = useState({operario:"",tipo:"Mejora",categoria:"Maquinaria",prio:"Media",texto:""});
+  const [filtro, setFiltro] = useState("Todas");
+
+  const ff = k => e => setForm(p=>({...p,[k]:e.target.value}));
+
+  const pendientes = entradas.filter(e=>e.est==="Pendiente").length;
+  const revisando  = entradas.filter(e=>e.est==="Revisando").length;
+  const impl       = entradas.filter(e=>e.est==="Implementada").length;
+
+  const entradasFiltradas = filtro==="Todas" ? entradas : entradas.filter(e=>e.tipo===filtro||e.est===filtro||e.prio===filtro);
+
+  function enviar(){
+    if(!form.operario||!form.texto.trim()) return;
+    const nueva = {
+      id:`BM-${String(entradas.length+1).padStart(3,"0")}`,
+      ts: new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit"})+" "+new Date().toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"}),
+      operario:form.operario, tipo:form.tipo, categoria:form.categoria,
+      prio:form.prio, texto:form.texto, est:"Pendiente", resp:"",
+    };
+    setEntradas(p=>[nueva,...p]);
+    setForm({operario:"",tipo:"Mejora",categoria:"Maquinaria",prio:"Media",texto:""});
+    setModal(false);
+  }
+
+  function setEst(id, est){ setEntradas(p=>p.map(e=>e.id===id?{...e,est}:e)); }
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:16,padding:16,height:"100%",overflowY:"auto"}}>
+
+      {/* Header */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
+        <div>
+          <div style={{fontSize:18,fontWeight:700,color:"#111827"}}>💬 Buzón de quejas y mejoras</div>
+          <div style={{fontSize:12,color:"#6b7280"}}>Transmite tu queja, mejora o sugerencia al equipo de gestión</div>
+        </div>
+        <button onClick={()=>setModal(true)}
+          style={{background:"#2563eb",color:"#fff",border:"none",borderRadius:8,padding:"8px 16px",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+          + Nueva entrada
+        </button>
+      </div>
+
+      {/* KPIs */}
+      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+        {[["Pendientes",pendientes,"#fef9c3","#854d0e"],["Revisando",revisando,"#dbeafe","#1d4ed8"],["Implementadas",impl,"#d1fae5","#065f46"],["Total",entradas.length,"#f1f5f9","#374151"]].map(([lbl,n,bg,tx])=>(
+          <div key={lbl} style={{background:bg,borderRadius:8,padding:"10px 18px",minWidth:100,textAlign:"center"}}>
+            <div style={{fontSize:22,fontWeight:700,color:tx}}>{n}</div>
+            <div style={{fontSize:10,color:tx,fontWeight:600,textTransform:"uppercase",letterSpacing:".05em"}}>{lbl}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filtros */}
+      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+        {["Todas","Queja","Mejora","Sugerencia","Pendiente","Revisando","Implementada"].map(f=>(
+          <button key={f} onClick={()=>setFiltro(f)}
+            style={{fontSize:10,padding:"4px 10px",borderRadius:20,cursor:"pointer",fontWeight:filtro===f?700:500,
+              background:filtro===f?"#2563eb":"#f1f5f9",color:filtro===f?"#fff":"#374151",
+              border:filtro===f?"none":"0.5px solid #e2e8f0"}}>
+            {f}
+          </button>
+        ))}
+      </div>
+
+      {/* Lista entradas */}
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {entradasFiltradas.length===0&&(
+          <div style={{textAlign:"center",color:"#9ca3af",padding:"40px 0",fontSize:13}}>No hay entradas con este filtro</div>
+        )}
+        {entradasFiltradas.map(e=>{
+          const tc=TIPO_COL[e.tipo]||{};
+          const pc=PRIO_COL[e.prio]||{};
+          const estC=e.est==="Implementada"?{bg:"#d1fae5",tx:"#065f46"}:e.est==="Revisando"?{bg:"#dbeafe",tx:"#1d4ed8"}:{bg:"#fef9c3",tx:"#854d0e"};
+          return(
+            <div key={e.id} onClick={()=>setDetalle(e)}
+              style={{background:"#fff",border:"0.5px solid #e2e8f0",borderRadius:10,padding:"12px 14px",cursor:"pointer",transition:"box-shadow .15s"}}
+              onMouseEnter={el=>el.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.08)"}
+              onMouseLeave={el=>el.currentTarget.style.boxShadow="none"}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6,flexWrap:"wrap"}}>
+                <span style={{fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:4,background:tc.bg,color:tc.tx,border:`0.5px solid ${tc.bd}`}}>{tc.ic} {e.tipo}</span>
+                <span style={{fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:4,background:pc.bg,color:pc.tx,border:`0.5px solid ${pc.bd}`}}>{e.prio}</span>
+                <span style={{fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:4,background:estC.bg,color:estC.tx}}>{e.est}</span>
+                <span style={{fontSize:10,color:"#9ca3af",marginLeft:"auto"}}>{e.id} · {e.ts}</span>
+              </div>
+              <div style={{fontSize:12,color:"#374151",fontWeight:600,marginBottom:3}}>{e.categoria}</div>
+              <div style={{fontSize:12,color:"#6b7280",lineHeight:1.5,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{e.texto}</div>
+              <div style={{fontSize:10,color:"#9ca3af",marginTop:6}}>👷 {e.operario}{e.resp&&` · 👤 Resp: ${e.resp}`}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Modal nueva entrada */}
+      {modal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:700,padding:16}}
+          onClick={e=>{if(e.target===e.currentTarget)setModal(false);}}>
+          <div style={{background:"#fff",borderRadius:12,width:480,maxWidth:"98%",maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:"0 25px 60px rgba(0,0,0,.3)",overflow:"hidden"}}>
+            <div style={{padding:"16px 20px",borderBottom:"1px solid #f3f4f6",background:"#fafafa"}}>
+              <div style={{fontSize:15,fontWeight:700,color:"#111827"}}>💬 Nueva entrada</div>
+              <div style={{fontSize:11,color:"#6b7280",marginTop:2}}>Tu mensaje llegará al equipo de gestión</div>
+            </div>
+            <div style={{flex:1,overflowY:"auto",padding:"18px 20px",display:"flex",flexDirection:"column",gap:12}}>
+              {/* Operario */}
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",display:"block",marginBottom:4}}>Tu nombre *</label>
+                <select value={form.operario} onChange={ff("operario")}
+                  style={{width:"100%",padding:"8px 10px",border:"1.5px solid #d1d5db",borderRadius:7,fontSize:13,color:"#111827",outline:"none"}}>
+                  <option value="">Selecciona tu nombre...</option>
+                  {OPERARIOS.filter(op=>op!=="Sin asignar").map(op=><option key={op}>{op}</option>)}
+                </select>
+              </div>
+              {/* Tipo + Categoría */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                <div>
+                  <label style={{fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",display:"block",marginBottom:4}}>Tipo *</label>
+                  <select value={form.tipo} onChange={ff("tipo")}
+                    style={{width:"100%",padding:"8px 10px",border:"1.5px solid #d1d5db",borderRadius:7,fontSize:13,color:"#111827",outline:"none"}}>
+                    {TIPOS.map(t=><option key={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",display:"block",marginBottom:4}}>Prioridad</label>
+                  <select value={form.prio} onChange={ff("prio")}
+                    style={{width:"100%",padding:"8px 10px",border:"1.5px solid #d1d5db",borderRadius:7,fontSize:13,color:"#111827",outline:"none"}}>
+                    {PRIORIDADES.map(p=><option key={p}>{p}</option>)}
+                  </select>
+                </div>
+              </div>
+              {/* Categoría */}
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",display:"block",marginBottom:4}}>Categoría</label>
+                <select value={form.categoria} onChange={ff("categoria")}
+                  style={{width:"100%",padding:"8px 10px",border:"1.5px solid #d1d5db",borderRadius:7,fontSize:13,color:"#111827",outline:"none"}}>
+                  {CATEGORIAS.map(c=><option key={c}>{c}</option>)}
+                </select>
+              </div>
+              {/* Texto */}
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",display:"block",marginBottom:4}}>Descripción *</label>
+                <textarea value={form.texto} onChange={ff("texto")} rows={4}
+                  placeholder="Describe tu queja, mejora o sugerencia con el máximo detalle posible..."
+                  style={{width:"100%",padding:"8px 10px",border:"1.5px solid #d1d5db",borderRadius:7,fontSize:13,color:"#111827",outline:"none",resize:"vertical",fontFamily:"inherit",boxSizing:"border-box"}}/>
+              </div>
+            </div>
+            <div style={{padding:"14px 20px",borderTop:"1px solid #f3f4f6",display:"flex",justifyContent:"flex-end",gap:10,background:"#fafafa"}}>
+              <button onClick={()=>setModal(false)} style={{background:"transparent",border:"1px solid #d1d5db",color:"#374151",padding:"7px 16px",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:600}}>Cancelar</button>
+              <button onClick={enviar} disabled={!form.operario||!form.texto.trim()}
+                style={{background:"#2563eb",color:"#fff",border:"none",padding:"7px 18px",borderRadius:7,cursor:form.operario&&form.texto.trim()?"pointer":"not-allowed",fontSize:12,fontWeight:700,opacity:form.operario&&form.texto.trim()?1:.45}}>
+                Enviar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal detalle */}
+      {detalle&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:700,padding:16}}
+          onClick={e=>{if(e.target===e.currentTarget)setDetalle(null);}}>
+          <div style={{background:"#fff",borderRadius:12,width:500,maxWidth:"98%",maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:"0 25px 60px rgba(0,0,0,.3)",overflow:"hidden"}}>
+            <div style={{padding:"16px 20px",borderBottom:"1px solid #f3f4f6",background:"#fafafa",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div>
+                <div style={{fontSize:14,fontWeight:700,color:"#111827"}}>{TIPO_COL[detalle.tipo]?.ic} {detalle.tipo} · {detalle.id}</div>
+                <div style={{fontSize:11,color:"#6b7280",marginTop:2}}>{detalle.ts} · 👷 {detalle.operario}</div>
+              </div>
+              <button onClick={()=>setDetalle(null)} style={{background:"#f3f4f6",border:"none",cursor:"pointer",width:30,height:30,borderRadius:"50%",fontSize:16,color:"#6b7280"}}>✕</button>
+            </div>
+            <div style={{flex:1,overflowY:"auto",padding:"18px 20px",display:"flex",flexDirection:"column",gap:12}}>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {[["Categoría",detalle.categoria],["Prioridad",detalle.prio],["Estado",detalle.est]].map(([lbl,val])=>(
+                  <div key={lbl} style={{background:"#f8fafc",borderRadius:6,padding:"6px 12px"}}>
+                    <div style={{fontSize:9,fontWeight:700,color:"#9ca3af",textTransform:"uppercase"}}>{lbl}</div>
+                    <div style={{fontSize:12,fontWeight:600,color:"#374151"}}>{val}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{background:"#f8fafc",borderRadius:8,padding:"12px 14px",fontSize:13,color:"#374151",lineHeight:1.6}}>{detalle.texto}</div>
+              {detalle.resp&&<div style={{fontSize:12,color:"#6b7280"}}>👤 Responsable asignado: <strong>{detalle.resp}</strong></div>}
+              {/* Cambiar estado */}
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",marginBottom:8}}>Actualizar estado</div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  {["Pendiente","Revisando","Implementada","Descartada"].map(est=>(
+                    <button key={est} onClick={()=>{setEst(detalle.id,est);setDetalle(d=>({...d,est}));}}
+                      style={{fontSize:11,padding:"5px 12px",borderRadius:6,cursor:"pointer",fontWeight:detalle.est===est?700:500,
+                        background:detalle.est===est?"#2563eb":"#f1f5f9",color:detalle.est===est?"#fff":"#374151",
+                        border:detalle.est===est?"none":"0.5px solid #e2e8f0"}}>
+                      {est}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── MÓDULO PRINCIPAL ─────────────────────────────────────────────
 export default function VistaOperario(){
   const {ncs,setNcs,ctrl,setCtrl,bloqueadas,setBloqueadas}=useContext(ERPContext);
@@ -781,7 +1005,7 @@ export default function VistaOperario(){
   const [ncTurno,setNcTurno]=useState([]);
   const [pendCtrl,setPendCtrl]=useState(null); // {maqId, of_}
   const [operarios,setOperarios]=useState({}); // {maqId: nombre}
-  const [vista,setVista]=useState('maquinas'); // 'maquinas' | 'turnos'
+  const [vista,setVista]=useState('maquinas'); // 'maquinas' | 'turnos' | 'buzon'
 
   const planes=useMemo(()=>{
     const r={};
@@ -872,7 +1096,7 @@ export default function VistaOperario(){
     <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 130px)",minHeight:500,gap:0,border:"0.5px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
       {/* Pestañas */}
       <div style={{display:"flex",borderBottom:"1px solid #e2e8f0",background:"#f8fafc",flexShrink:0}}>
-        {[["maquinas","⚙ Máquinas"],["turnos","📅 Turnos"]].map(([v,lbl])=>(
+        {[["maquinas","⚙ Máquinas"],["turnos","📅 Turnos"],["buzon","💬 Buzón"]].map(([v,lbl])=>(
           <button key={v} onClick={()=>setVista(v)}
             style={{padding:"10px 20px",fontSize:12,fontWeight:vista===v?700:500,cursor:"pointer",background:"transparent",border:"none",borderBottom:vista===v?"2px solid #2563eb":"2px solid transparent",color:vista===v?"#2563eb":"#6b7280",transition:"all .15s"}}>
             {lbl}
@@ -880,7 +1104,7 @@ export default function VistaOperario(){
         ))}
       </div>
 
-      {vista==="turnos"?<CalendarioTurnos/>:
+      {vista==="turnos"?<CalendarioTurnos/>:vista==="buzon"?<BuzonMejoras/>:
       <div style={{display:"flex",flex:1,overflow:"hidden"}}>
 
       {/* ── SIDEBAR MÁQUINAS ── */}
