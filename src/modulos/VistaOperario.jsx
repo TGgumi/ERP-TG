@@ -789,38 +789,46 @@ const TIPO_COL = {
 };
 
 function BuzonMejoras(){
-  const [entradas, setEntradas] = useState([
-    {id:"BM-001",ts:"08/04 09:15",operario:"J. García",tipo:"Mejora",categoria:"Maquinaria",prio:"Media",texto:"La PRE-02 tarda demasiado en calentar al inicio del turno. Convendría dejarla en standby entre turnos en lugar de apagarla.",est:"Revisando",resp:"M. Torres"},
-    {id:"BM-002",ts:"10/04 14:30",operario:"C. Font",tipo:"Queja",categoria:"Condiciones de trabajo",prio:"Alta",texto:"La iluminación de la zona de granallado es insuficiente. Hay que esforzar mucho la vista para revisar las piezas.",est:"Pendiente",resp:""},
-    {id:"BM-003",ts:"15/04 07:45",operario:"D. Gil",tipo:"Sugerencia",categoria:"Organización",prio:"Baja",texto:"Sería útil tener una pizarra digital en cada línea con las OFs del día para no tener que consultar siempre el ordenador.",est:"Implementada",resp:"J. Pérez"},
-  ]);
+  const { mejoras, setMejoras } = useContext(ERPContext);
   const [modal, setModal] = useState(false);
   const [detalle, setDetalle] = useState(null);
-  const [form, setForm] = useState({operario:"",tipo:"Mejora",categoria:"Maquinaria",prio:"Media",texto:""});
+  const [form, setForm] = useState({tipo:"Mejora",categoria:"Maquinaria",prio:"Media",texto:""});
   const [filtro, setFiltro] = useState("Todas");
+
+  // Filtrar solo entradas del buzón operario (modulo="Operario")
+  const entradas = mejoras.filter(m=>m.modulo==="Operario");
 
   const ff = k => e => setForm(p=>({...p,[k]:e.target.value}));
 
-  const pendientes = entradas.filter(e=>e.est==="Pendiente").length;
-  const revisando  = entradas.filter(e=>e.est==="Revisando").length;
-  const impl       = entradas.filter(e=>e.est==="Implementada").length;
+  const pendientes = entradas.filter(e=>e.estado==="Pendiente").length;
+  const revisando  = entradas.filter(e=>e.estado==="En análisis").length;
+  const impl       = entradas.filter(e=>e.estado==="Implementado").length;
 
-  const entradasFiltradas = filtro==="Todas" ? entradas : entradas.filter(e=>e.tipo===filtro||e.est===filtro||e.prio===filtro);
+  const entradasFiltradas = filtro==="Todas" ? entradas : entradas.filter(e=>e.tipo===filtro||e.estado===filtro||e.prioridad===filtro);
 
   function enviar(){
-    if(!form.operario||!form.texto.trim()) return;
+    if(!form.texto.trim()) return;
     const nueva = {
-      id:`BM-${String(entradas.length+1).padStart(3,"0")}`,
-      ts: new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit"})+" "+new Date().toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"}),
-      operario:form.operario, tipo:form.tipo, categoria:form.categoria,
-      prio:form.prio, texto:form.texto, est:"Pendiente", resp:"",
+      id:`BM-${String(mejoras.length+1).padStart(3,"0")}`,
+      fecha: new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit",year:"numeric"}),
+      autor:"Anónimo",
+      modulo:"Operario",
+      tipo:form.tipo,
+      categoria:form.categoria,
+      prioridad:form.prio,
+      titulo:form.texto.slice(0,60)+(form.texto.length>60?"...":""),
+      descripcion:form.texto,
+      propuesta:"",
+      estado:"Pendiente",
+      responsable:"Sin asignar",
+      comentarios:[],
     };
-    setEntradas(p=>[nueva,...p]);
-    setForm({operario:"",tipo:"Mejora",categoria:"Maquinaria",prio:"Media",texto:""});
+    setMejoras(p=>[nueva,...p]);
+    setForm({tipo:"Mejora",categoria:"Maquinaria",prio:"Media",texto:""});
     setModal(false);
   }
 
-  function setEst(id, est){ setEntradas(p=>p.map(e=>e.id===id?{...e,est}:e)); }
+  function setEst(id, est){ setMejoras(p=>p.map(e=>e.id===id?{...e,estado:est}:e)); }
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:16,padding:16,height:"100%",overflowY:"auto"}}>
@@ -867,7 +875,7 @@ function BuzonMejoras(){
         {entradasFiltradas.map(e=>{
           const tc=TIPO_COL[e.tipo]||{};
           const pc=PRIO_COL[e.prio]||{};
-          const estC=e.est==="Implementada"?{bg:"#d1fae5",tx:"#065f46"}:e.est==="Revisando"?{bg:"#dbeafe",tx:"#1d4ed8"}:{bg:"#fef9c3",tx:"#854d0e"};
+          const estC=e.estado==="Implementado"?{bg:"#d1fae5",tx:"#065f46"}:e.estado==="En análisis"?{bg:"#dbeafe",tx:"#1d4ed8"}:{bg:"#fef9c3",tx:"#854d0e"};
           return(
             <div key={e.id} onClick={()=>setDetalle(e)}
               style={{background:"#fff",border:"0.5px solid #e2e8f0",borderRadius:10,padding:"12px 14px",cursor:"pointer",transition:"box-shadow .15s"}}
@@ -875,13 +883,13 @@ function BuzonMejoras(){
               onMouseLeave={el=>el.currentTarget.style.boxShadow="none"}>
               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6,flexWrap:"wrap"}}>
                 <span style={{fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:4,background:tc.bg,color:tc.tx,border:`0.5px solid ${tc.bd}`}}>{tc.ic} {e.tipo}</span>
-                <span style={{fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:4,background:pc.bg,color:pc.tx,border:`0.5px solid ${pc.bd}`}}>{e.prio}</span>
-                <span style={{fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:4,background:estC.bg,color:estC.tx}}>{e.est}</span>
+                <span style={{fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:4,background:pc.bg,color:pc.tx,border:`0.5px solid ${pc.bd}`}}>{e.prioridad}</span>
+                <span style={{fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:4,background:estC.bg,color:estC.tx}}>{e.estado}</span>
                 <span style={{fontSize:10,color:"#9ca3af",marginLeft:"auto"}}>{e.id} · {e.ts}</span>
               </div>
               <div style={{fontSize:12,color:"#374151",fontWeight:600,marginBottom:3}}>{e.categoria}</div>
               <div style={{fontSize:12,color:"#6b7280",lineHeight:1.5,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{e.texto}</div>
-              <div style={{fontSize:10,color:"#9ca3af",marginTop:6}}>👷 {e.operario}{e.resp&&` · 👤 Resp: ${e.resp}`}</div>
+              <div style={{fontSize:10,color:"#9ca3af",marginTop:6}}>🔒 Anónimo{e.responsable&&e.responsable!=="Sin asignar"?` · 👤 Resp: ${e.responsable}`:""}</div>
             </div>
           );
         })}
@@ -897,14 +905,10 @@ function BuzonMejoras(){
               <div style={{fontSize:11,color:"#6b7280",marginTop:2}}>Tu mensaje llegará al equipo de gestión</div>
             </div>
             <div style={{flex:1,overflowY:"auto",padding:"18px 20px",display:"flex",flexDirection:"column",gap:12}}>
-              {/* Operario */}
-              <div>
-                <label style={{fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",display:"block",marginBottom:4}}>Tu nombre *</label>
-                <select value={form.operario} onChange={ff("operario")}
-                  style={{width:"100%",padding:"8px 10px",border:"1.5px solid #d1d5db",borderRadius:7,fontSize:13,color:"#111827",outline:"none"}}>
-                  <option value="">Selecciona tu nombre...</option>
-                  {OPERARIOS.filter(op=>op!=="Sin asignar").map(op=><option key={op}>{op}</option>)}
-                </select>
+              {/* Aviso anónimo */}
+              <div style={{background:"#f0fdf4",border:"0.5px solid #86efac",borderRadius:8,padding:"10px 14px",fontSize:12,color:"#166534",display:"flex",gap:8,alignItems:"center"}}>
+                <span style={{fontSize:16}}>🔒</span>
+                <span><strong>Envío anónimo</strong> — Tu identidad no quedará registrada. Solo el contenido de tu mensaje llegará a Calidad.</span>
               </div>
               {/* Tipo + Categoría */}
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
@@ -942,7 +946,7 @@ function BuzonMejoras(){
             <div style={{padding:"14px 20px",borderTop:"1px solid #f3f4f6",display:"flex",justifyContent:"flex-end",gap:10,background:"#fafafa"}}>
               <button onClick={()=>setModal(false)} style={{background:"transparent",border:"1px solid #d1d5db",color:"#374151",padding:"7px 16px",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:600}}>Cancelar</button>
               <button onClick={enviar} disabled={!form.operario||!form.texto.trim()}
-                style={{background:"#2563eb",color:"#fff",border:"none",padding:"7px 18px",borderRadius:7,cursor:form.operario&&form.texto.trim()?"pointer":"not-allowed",fontSize:12,fontWeight:700,opacity:form.operario&&form.texto.trim()?1:.45}}>
+                style={{background:"#2563eb",color:"#fff",border:"none",padding:"7px 18px",borderRadius:7,cursor:form.texto.trim()?"pointer":"not-allowed",fontSize:12,fontWeight:700,opacity:form.texto.trim()?1:.45}}>
                 Enviar
               </button>
             </div>
@@ -964,7 +968,7 @@ function BuzonMejoras(){
             </div>
             <div style={{flex:1,overflowY:"auto",padding:"18px 20px",display:"flex",flexDirection:"column",gap:12}}>
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                {[["Categoría",detalle.categoria],["Prioridad",detalle.prio],["Estado",detalle.est]].map(([lbl,val])=>(
+                {[["Categoría",detalle.categoria],["Prioridad",detalle.prioridad],["Estado",detalle.estado]].map(([lbl,val])=>(
                   <div key={lbl} style={{background:"#f8fafc",borderRadius:6,padding:"6px 12px"}}>
                     <div style={{fontSize:9,fontWeight:700,color:"#9ca3af",textTransform:"uppercase"}}>{lbl}</div>
                     <div style={{fontSize:12,fontWeight:600,color:"#374151"}}>{val}</div>
@@ -972,16 +976,16 @@ function BuzonMejoras(){
                 ))}
               </div>
               <div style={{background:"#f8fafc",borderRadius:8,padding:"12px 14px",fontSize:13,color:"#374151",lineHeight:1.6}}>{detalle.texto}</div>
-              {detalle.resp&&<div style={{fontSize:12,color:"#6b7280"}}>👤 Responsable asignado: <strong>{detalle.resp}</strong></div>}
+              {detalle.responsable&&detalle.responsable!=="Sin asignar"&&<div style={{fontSize:12,color:"#6b7280"}}>👤 Responsable asignado: <strong>{detalle.responsable}</strong></div>}
               {/* Cambiar estado */}
               <div>
                 <div style={{fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",marginBottom:8}}>Actualizar estado</div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                  {["Pendiente","Revisando","Implementada","Descartada"].map(est=>(
-                    <button key={est} onClick={()=>{setEst(detalle.id,est);setDetalle(d=>({...d,est}));}}
-                      style={{fontSize:11,padding:"5px 12px",borderRadius:6,cursor:"pointer",fontWeight:detalle.est===est?700:500,
-                        background:detalle.est===est?"#2563eb":"#f1f5f9",color:detalle.est===est?"#fff":"#374151",
-                        border:detalle.est===est?"none":"0.5px solid #e2e8f0"}}>
+                  {["Pendiente","En análisis","Implementado","Rechazado"].map(est=>(
+                    <button key={est} onClick={()=>{setEst(detalle.id,est);setDetalle(d=>({...d,estado:est}));}}
+                      style={{fontSize:11,padding:"5px 12px",borderRadius:6,cursor:"pointer",fontWeight:detalle.estado===est?700:500,
+                        background:detalle.estado===est?"#2563eb":"#f1f5f9",color:detalle.estado===est?"#fff":"#374151",
+                        border:detalle.estado===est?"none":"0.5px solid #e2e8f0"}}>
                       {est}
                     </button>
                   ))}

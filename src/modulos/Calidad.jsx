@@ -1,6 +1,6 @@
 // src/modulos/Calidad.jsx
 import { useContext, useState, useMemo } from "react";
-import { ERPContext } from "../ERP";
+import { ERPContext, PanelMejoras } from "../ERP";
 import { CLIENTES, MAQUINAS, HOMS, cn } from "../datos";
 import { Bdg, Card, Tbl, Tabs, Al, KRow, ck } from "../ui";
 
@@ -2053,7 +2053,7 @@ function TabRetrabajos() {
 }
 
 export default function Calidad(){
-  const { ncs, setNcs, ctrl, bloqueadas, setBloqueadas } = useContext(ERPContext);
+  const { ncs, setNcs, ctrl, bloqueadas, setBloqueadas, mejoras, setMejoras } = useContext(ERPContext);
 
   // Combinar NCs del contexto (VistaOperario) con datos enriquecidos
   const ncsEnriq = ncs.map(n=>{
@@ -2074,7 +2074,7 @@ export default function Calidad(){
   const [tab,setTab] = useState("kpis");
   return(
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
-      <Tabs items={[["kpis","Dashboard"],["ncs","No Conformidades"],["planes","Planes de control"],["prov","Proveedores"],["aud","Auditorías"],["ctrl","Controles"],["retrabajos","Retrabajos"]]} cur={tab} onChange={setTab}/>
+      <Tabs items={[["kpis","Dashboard"],["ncs","No Conformidades"],["planes","Planes de control"],["prov","Proveedores"],["aud","Auditorías"],["ctrl","Controles"],["retrabajos","Retrabajos"],["buzon","💬 Buzón"]]} cur={tab} onChange={setTab}/>
       {tab==="kpis"   && <TabKPIs    ncs={ncsEnriq}/>}
       {tab==="ncs"    && <TabNCs     ncs={ncsEnriq} setNcs={setNcsEnriq}/>}
       {tab==="planes" && <TabPlanes/>}
@@ -2082,6 +2082,7 @@ export default function Calidad(){
       {tab==="aud"    && <TabAuditorias/>}
       {tab==="ctrl"   && <TabControles registros={ctrl} bloqueadas={bloqueadas} setBloqueadas={setBloqueadas}/>}
       {tab==="retrabajos" && <TabRetrabajos/>}
+      {tab==="buzon"      && <PanelMejoras mejoras={mejoras.filter(m=>m.modulo==="Operario")} setMejoras={setMejoras}/>}
     </div>
   );
 }
