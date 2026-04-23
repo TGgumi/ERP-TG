@@ -64,6 +64,62 @@ const HISTORICO_DIARIO = [
 ];
 
 // ─── MODAL NUEVA OF ───────────────────────────────────────────────
+
+// ─── CODE 39 BARCODE ─────────────────────────────────────────────
+const C39 = {
+  '0':'000110100','1':'100100001','2':'001100001','3':'101100000',
+  '4':'000110001','5':'100110000','6':'001110000','7':'000100101',
+  '8':'100100100','9':'001100100','A':'100001001','B':'001001001',
+  'C':'101001000','D':'000011001','E':'100011000','F':'001011000',
+  'G':'000001101','H':'100001100','I':'001001100','J':'000011100',
+  'K':'100000011','L':'001000011','M':'101000010','N':'000010011',
+  'O':'100010010','P':'001010010','Q':'000000111','R':'100000110',
+  'S':'001000110','T':'000010110','U':'110000001','V':'011000001',
+  'W':'111000000','X':'010010001','Y':'110010000','Z':'011010000',
+  '-':'000100011','.':'100100010',' ':'011000010','$':'010101000',
+  '/':'010100010','+':'010001010','%':'000101010','*':'010010100',
+};
+
+function Barcode39({ text, height=50, narrow=2, wide=6, quiet=10 }){
+  const full = '*' + text.toUpperCase() + '*';
+  const invalid = [...full].find(c => !C39[c]);
+  if(invalid) return <div style={{color:"#b91c1c",fontSize:11}}>Carácter no válido: {invalid}</div>;
+
+  // Calcular ancho total
+  const charGap = narrow; // gap entre caracteres
+  let x = quiet;
+  const rects = [];
+
+  [...full].forEach((ch, ci) => {
+    const pat = C39[ch];
+    for(let i = 0; i < 9; i++){
+      const isBar   = i % 2 === 0; // posiciones 0,2,4,6,8 = barras
+      const isWide  = pat[i] === '1';
+      const w       = isWide ? wide : narrow;
+      if(isBar) rects.push({ x, w, h: height });
+      x += w;
+    }
+    // inter-character gap (narrow space)
+    if(ci < full.length - 1) x += charGap;
+  });
+
+  const totalW = x + quiet;
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+      <svg width={totalW} height={height + 20} style={{display:"block"}}>
+        {rects.map((r,i)=>(
+          <rect key={i} x={r.x} y={0} width={r.w} height={r.h} fill="#000"/>
+        ))}
+        <text x={totalW/2} y={height+14} textAnchor="middle" fontSize="11"
+          fontFamily="monospace" fill="#111" letterSpacing="2">
+          {text}
+        </text>
+      </svg>
+    </div>
+  );
+}
+
 function OFModal({ onClose, onSave }) {
   const [step, setStep]   = useState(1);
   const [cliId, setCli]   = useState(null);
@@ -72,6 +128,8 @@ function OFModal({ onClose, onSave }) {
   const [fe, setFe]       = useState("");
   const [lote, setLote]   = useState("L-001");
   const [prio, setPrio]   = useState("Normal");
+  const [nCont, setNCont] = useState("1");
+  const [nPed,  setNPed]  = useState("");
   const [qCli, setQCli]   = useState("");
   const [qHom, setQHom]   = useState("");
 
@@ -79,7 +137,7 @@ function OFModal({ onClose, onSave }) {
   const inactH  = HOMS.filter(h => h.cli===cliId && h.est!=="Activa");
   const hom     = HOMS.find(h => h.id===homId);
   const maqMant = hom && MAQUINAS.find(m => m.id===hom.maq)?.est==="Mantenimiento";
-  const canNext = (step===1&&cliId)||(step===2&&homId)||(step===3&&kg&&fe)||step===4;
+  const canNext = (step===1&&cliId)||(step===2&&homId)||(step===3&&kg&&fe&&nCont&&nPed&&nPed.length===4)||step===4;
   function goNext(){ if(canNext){ setStep(s=>s+1); setQCli(""); setQHom(""); } }
   function goBack(){ setStep(s=>s-1); setQCli(""); setQHom(""); }
   const STEPS   = ["Cliente","Homologación","Detalles","Confirmar"];
@@ -204,6 +262,14 @@ function OFModal({ onClose, onSave }) {
                   <label style={{fontSize:10.5,fontWeight:500,color:"#6b7280",textTransform:"uppercase",letterSpacing:".04em"}}>Prioridad</label>
                   <select value={prio} onChange={e=>setPrio(e.target.value)} style={inp}><option>Normal</option><option>Urgente</option></select>
                 </div>
+                <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                  <label style={{fontSize:10.5,fontWeight:500,color:"#6b7280",textTransform:"uppercase",letterSpacing:".04em"}}>Nº Contenedores *</label>
+                  <input type="number" min="1" value={nCont} onChange={e=>setNCont(e.target.value)} style={inp} placeholder="1"/>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                  <label style={{fontSize:10.5,fontWeight:500,color:"#6b7280",textTransform:"uppercase",letterSpacing:".04em"}}>Nº Pedido (4 dígitos) *</label>
+                  <input type="text" maxLength="4" value={nPed} onChange={e=>setNPed(e.target.value.replace(/\D/g,"").slice(0,4))} style={inp} placeholder="ej. 1234"/>
+                </div>
               </div>
               {maqMant&&<div style={{marginTop:10}}><Al type="w">⚠ {hom.maq} en mantenimiento.</Al></div>}
             </div>
@@ -212,13 +278,20 @@ function OFModal({ onClose, onSave }) {
             <div>
               <Al type="g">✓ Datos verificados. OF vinculada a homologación activa.</Al>
               <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:14}}>
-                {[["Cliente",cn(cliId)],["Referencia",hom.desc],["Cód. interno",hom.cod],["Máquina",hom.maq],["Topcoat",hom.top],["Kg",`${kg} kg`],["F. Entrega",fe],["Lote",lote],["Prioridad",prio],["Parámetros",`Vb:${hom.vb}·Tb:${hom.tb}·Vc:${hom.vc}·Tc:${hom.tc}`]].map(([k,v])=>(
+                {[["Cliente",cn(cliId)],["Referencia",hom.desc],["Cód. interno",hom.cod],["Máquina",hom.maq],["Topcoat",hom.top],["Kg",`${kg} kg`],["F. Entrega",fe],["Lote",lote],["Prioridad",prio],["Nº Contenedores",nCont],["Nº Pedido",nPed],["Parámetros",`Vb:${hom.vb}·Tb:${hom.tb}·Vc:${hom.vc}·Tc:${hom.tc}`]].map(([k,v])=>(
                   <div key={k} style={{display:"flex",gap:10,fontSize:12}}>
                     <span style={{minWidth:130,color:"#6b7280"}}>{k}</span>
                     <span style={{fontWeight:500}}>{v}</span>
                   </div>
                 ))}
               </div>
+              {nPed&&nPed.length===4&&cliId&&(
+                <div style={{marginTop:16,padding:"14px 16px",background:"#f8fafc",borderRadius:8,border:"1px solid #e2e8f0",display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+                  <div style={{fontSize:10.5,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:".06em",marginBottom:4}}>Código de barras — Code 39</div>
+                  <Barcode39 text={`OF-${String(cliId).padStart(3,"0")}${nPed}`}/>
+                  <div style={{fontSize:10,color:"#9ca3af",fontFamily:"monospace"}}>OF-{String(cliId).padStart(3,"0")}{nPed}</div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -227,7 +300,7 @@ function OFModal({ onClose, onSave }) {
           <button onClick={onClose} style={btn0}>Cancelar</button>
           {step<4
             ?<button onClick={goNext} style={{...ck("info"),padding:"5px 13px",borderRadius:6,cursor:canNext?"pointer":"not-allowed",fontSize:12,fontWeight:500,opacity:canNext?1:.45}}>Siguiente →</button>
-            :<button onClick={()=>{onSave({id:`OF-${nOF++}`,hid:hom.id,cli:cliId,maq:hom.maq,kg:parseInt(kg),top:hom.top,est:"Pendiente",prio,fe,lote,alb:null});onClose();}} style={{...ck("success"),padding:"5px 13px",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:500}}>✓ Crear OF</button>
+            :<button onClick={()=>{onSave({id:`OF-${nOF++}`,hid:hom.id,cli:cliId,maq:hom.maq,kg:parseInt(kg),top:hom.top,est:"Pendiente",prio,fe,lote,nCont:parseInt(nCont),nPed,alb:null});onClose();}} style={{...ck("success"),padding:"5px 13px",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:500}}>✓ Crear OF</button>
           }
         </div>
       </div>
