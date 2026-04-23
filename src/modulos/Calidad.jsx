@@ -1646,9 +1646,9 @@ function ModalNuevo({ total, onClose, onGuardar }) {
     <RT_Modal titulo="Nuevo Retrabajo" subtitulo="Registra un evento de retrabajo o reproceso" onClose={onClose} onGuardar={guardar} btnLabel="Registrar Retrabajo">
       <RT_Sep label="Identificación"/>
       <RT_R3 c={[
-        <RT_Campo label="Fecha"><input style={MI} value={f.fecha} onChange={ff("fecha")}/></Campo>,
-        <RT_Campo label="Hora"><input style={MI} value={f.hora} onChange={ff("hora")}/></Campo>,
-        <RT_Campo label="OF vinculada" required><input style={MI} placeholder="OF-XXXX" value={f.of} onChange={ff("of")}/></Campo>,
+        <RT_Campo label="Fecha"><input style={MI} value={f.fecha} onChange={ff("fecha")}/></RT_Campo>,
+        <RT_Campo label="Hora"><input style={MI} value={f.hora} onChange={ff("hora")}/></RT_Campo>,
+        <RT_Campo label="OF vinculada" required><input style={MI} placeholder="OF-XXXX" value={f.of} onChange={ff("of")}/></RT_Campo>,
       ]}/>
       <RT_Campo label="Referencia Homologación">
         <select style={MI} value={f.ref_hom} onChange={ff("ref_hom")}>
@@ -1685,8 +1685,8 @@ function ModalNuevo({ total, onClose, onGuardar }) {
 
       <RT_Sep label="Afectación"/>
       <RT_R2 c={[
-        <RT_Campo label="Kg afectados" required><input style={MI} type="number" min="0" placeholder="0" value={f.kg} onChange={ff("kg")}/></Campo>,
-        <RT_Campo label="Unidades afectadas"><input style={MI} type="number" min="0" placeholder="0" value={f.uds} onChange={ff("uds")}/></Campo>,
+        <RT_Campo label="Kg afectados" required><input style={MI} type="number" min="0" placeholder="0" value={f.kg} onChange={ff("kg")}/></RT_Campo>,
+        <RT_Campo label="Unidades afectadas"><input style={MI} type="number" min="0" placeholder="0" value={f.uds} onChange={ff("uds")}/></RT_Campo>,
       ]}/>
       <RT_Campo label="Descripción del defecto" required>
         <textarea style={{...MI,minHeight:70,resize:"vertical"}} placeholder="Describe el defecto detectado..." value={f.desc} onChange={ff("desc")}/>
@@ -1716,15 +1716,15 @@ function ModalNuevo({ total, onClose, onGuardar }) {
 
       <RT_Sep label="Coste estimado"/>
       <RT_R3 c={[
-        <RT_Campo label="Coste/hora (€)"><input style={MI} type="number" min="0" step="0.1" placeholder="0.00" value={f.coste_hora} onChange={ff("coste_hora")}/></Campo>,
-        <RT_Campo label="Horas dedicadas"><input style={MI} type="number" min="0" step="0.5" placeholder="0" value={f.horas} onChange={ff("horas")}/></Campo>,
-        <RT_Campo label="Material extra (€)"><input style={MI} type="number" min="0" step="0.1" placeholder="0.00" value={f.material_extra} onChange={ff("material_extra")}/></Campo>,
+        <RT_Campo label="Coste/hora (€)"><input style={MI} type="number" min="0" step="0.1" placeholder="0.00" value={f.coste_hora} onChange={ff("coste_hora")}/></RT_Campo>,
+        <RT_Campo label="Horas dedicadas"><input style={MI} type="number" min="0" step="0.5" placeholder="0" value={f.horas} onChange={ff("horas")}/></RT_Campo>,
+        <RT_Campo label="Material extra (€)"><input style={MI} type="number" min="0" step="0.1" placeholder="0.00" value={f.material_extra} onChange={ff("material_extra")}/></RT_Campo>,
       ]}/>
 
       <RT_Sep label="Trazabilidad"/>
       <RT_R2 c={[
-        <RT_Campo label="NC vinculada"><input style={MI} placeholder="NC-XXXX-XXX (opcional)" value={f.origen_nc} onChange={ff("origen_nc")}/></Campo>,
-        <RT_Campo label="Observaciones"><input style={MI} placeholder="..." value={f.obs} onChange={ff("obs")}/></Campo>,
+        <RT_Campo label="NC vinculada"><input style={MI} placeholder="NC-XXXX-XXX (opcional)" value={f.origen_nc} onChange={ff("origen_nc")}/></RT_Campo>,
+        <RT_Campo label="Observaciones"><input style={MI} placeholder="..." value={f.obs} onChange={ff("obs")}/></RT_Campo>,
       ]}/>
     </Modal>
   );
