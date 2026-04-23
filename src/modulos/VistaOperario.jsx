@@ -132,7 +132,7 @@ function FTag({f}){
   return<span style={{display:"inline-flex",padding:"1px 5px",borderRadius:4,fontSize:9.5,fontWeight:700,background:c+"22",color:c,border:`0.5px solid ${c}55`}}>{f}</span>;
 }
 
-function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,confirmadas,bloqueadas}){
+function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,operario,confirmadas,bloqueadas}){
   const s=SC[sem(o.fentrega)];
   const c=cic(o,maq);
   const a=atr(o.fentrega);
@@ -195,7 +195,11 @@ function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,confirmadas,bloqueadas})
           <div style={{display:"flex",gap:4,marginTop:6,justifyContent:"flex-end"}}>
             {puede?(
               <>
-                <button onClick={()=>onOK(o)} style={{fontSize:10,padding:"3px 9px",borderRadius:5,cursor:"pointer",background:"rgba(34,197,94,.2)",border:"0.5px solid rgba(34,197,94,.5)",color:"#166534",fontWeight:700}}>✓ OK</button>
+                {(!operario||operario==="Sin asignar")?(
+                  <span title="Asigna un operario antes de confirmar" style={{fontSize:10,padding:"3px 9px",borderRadius:5,background:"#f1f5f9",border:"0.5px solid #e2e8f0",color:"#9ca3af",cursor:"not-allowed",display:"inline-block"}}>✓ OK</span>
+                ):(
+                  <button onClick={()=>onOK(o)} style={{fontSize:10,padding:"3px 9px",borderRadius:5,cursor:"pointer",background:"rgba(34,197,94,.2)",border:"0.5px solid rgba(34,197,94,.5)",color:"#166534",fontWeight:700}}>✓ OK</button>
+                )}
                 <button onClick={()=>onNC(o)} style={{fontSize:10,padding:"3px 9px",borderRadius:5,cursor:"pointer",background:"rgba(239,68,68,.15)",border:"0.5px solid rgba(239,68,68,.4)",color:"#b91c1c",fontWeight:700}}>✕ NC</button>
               </>
             ):(
@@ -214,7 +218,7 @@ function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,confirmadas,bloqueadas})
   );
 }
 
-function HornoCard({maq,num,ofs_h,onNC,onOK,onDeshacer,onDeshacerNC,confirmadas,bloqueadas}){
+function HornoCard({maq,num,ofs_h,onNC,onOK,onDeshacer,onDeshacerNC,operario,confirmadas,bloqueadas}){
   const [open,setOpen]=useState(true);
   const tot=ofs_h.reduce((s,o)=>s+cic(o,maq),0);
   const ok=tot>=HMIN&&tot<=HMAX;
@@ -243,7 +247,7 @@ function HornoCard({maq,num,ofs_h,onNC,onOK,onDeshacer,onDeshacerNC,confirmadas,
       </div>
       {open&&(
         <div style={{paddingLeft:6,paddingTop:5,display:"flex",flexDirection:"column",gap:4}}>
-          {ofs_h.map((o,i)=><OFRow key={`${o.of}-${i}`} o={o} maq={maq} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} confirmadas={confirmadas} bloqueadas={bloqueadas}/>)}
+          {ofs_h.map((o,i)=><OFRow key={`${o.of}-${i}`} o={o} maq={maq} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} confirmadas={confirmadas} bloqueadas={bloqueadas}/>)}
         </div>
       )}
     </div>
@@ -296,12 +300,12 @@ function VistaMaquina({maq,plan,usaHornos,est,onCambiarEst,operario,onCambiarOpe
         ):usaHornos?(
           // Vista con hornos (TWIN44, TWIN02, MN-01)
           Object.entries(hornos).map(([h,ofs_h])=>(
-            <HornoCard key={h} maq={maq} num={+h} ofs_h={ofs_h} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} confirmadas={confirmadas} bloqueadas={bloqueadas}/>
+            <HornoCard key={h} maq={maq} num={+h} ofs_h={ofs_h} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} confirmadas={confirmadas} bloqueadas={bloqueadas}/>
           ))
         ):(
           // Vista sin hornos — lista directa
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            {plan.map((o,i)=><OFRow key={`${o.of}-${i}`} o={o} maq={maq} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} confirmadas={confirmadas} bloqueadas={bloqueadas}/>)}
+            {plan.map((o,i)=><OFRow key={`${o.of}-${i}`} o={o} maq={maq} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} confirmadas={confirmadas} bloqueadas={bloqueadas}/>)}
           </div>
         )}
       </div>
