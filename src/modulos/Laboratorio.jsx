@@ -436,11 +436,270 @@ const ALMACEN_MN01_INIT = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════
+
+// ─── REGISTRO PDF NIEBLA SALINA ───────────────────────────────────
+function SubRegistroPDF() {
+  const API_KEY = import.meta.env.VITE_ANTHROPIC_KEY;
+  const [registros, setRegistros] = useState([]);
+  const [loading, setLoading]     = useState(false);
+  const [error, setError]         = useState("");
+  const [sel, setSel]             = useState(null);
+
+  async function procesarPDF(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    setLoading(true); setError("");
+
+    // Convertir PDF a base64
+    const base64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(",")[1]);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+
+    try {
+      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-api-key": API_KEY, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+        body: JSON.stringify({
+          model: "claude-opus-4-5",
+          max_tokens: 2000,
+          messages: [{
+            role: "user",
+            content: [
+              { type: "document", source: { type: "base64", media_type: "application/pdf", data: base64 } },
+              { type: "text", text: `Extrae todos los datos de este informe de ensayo de cámara de niebla salina (NSS). 
+Devuelve SOLO un JSON con esta estructura exacta, sin markdown ni explicaciones:
+{
+  "ensayo_num": "",
+  "camara_num": "",
+  "cliente": "",
+  "referencia": "",
+  "of": "",
+  "codigo_interno": "",
+  "albaran": "",
+  "serie_lote": "",
+  "norma": "",
+  "recubrimiento": "",
+  "denominacion": "",
+  "ox_blanca_horas": 0,
+  "ox_roja_horas": 0,
+  "num_piezas": 0,
+  "fecha_inicio": "",
+  "fecha_fin_prevista": "",
+  "resultados": [{"fecha":"","horas":0,"nok":0,"acep":0,"ok":0}],
+  "ox_blanca_aparicion": "",
+  "ox_roja_aparicion": "",
+  "duracion_total": "",
+  "conclusion": "",
+  "comentarios": "",
+  "laboratorio": "",
+  "validacion": "",
+  "fecha_validacion": ""
+}` }
+            ]
+          }]
+        })
+      });
+
+      const data = await resp.json();
+      const txt = data.content?.find(b => b.type === "text")?.text || "";
+      const clean = txt.replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(clean);
+
+      const nuevo = {
+        ...parsed,
+        id: `NSS-PDF-${Date.now()}`,
+        archivo: file.name,
+        fecha_registro: new Date().toLocaleDateString("es-ES", {day:"2-digit",month:"2-digit",year:"numeric"}) + " " + new Date().toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"}),
+      };
+      setRegistros(p => [nuevo, ...p]);
+      setSel(nuevo);
+    } catch(err) {
+      setError("Error al procesar el PDF: " + err.message);
+    } finally {
+      setLoading(false);
+      e.target.value = "";
+    }
+  }
+
+  const concC = {
+    "Conforme":    {bg:"#d1fae5",tx:"#065f46",bd:"#6ee7b7"},
+    "Aceptable":   {bg:"#fef9c3",tx:"#854d0e",bd:"#fde68a"},
+    "No conforme": {bg:"#fee2e2",tx:"#b91c1c",bd:"#fca5a5"},
+  };
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:16}}>
+
+      {/* Upload */}
+      <div style={{background:"#f8fafc",border:"2px dashed #cbd5e1",borderRadius:12,padding:"28px 20px",textAlign:"center"}}>
+        <div style={{fontSize:32,marginBottom:8}}>📄</div>
+        <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Subir informe NSS en PDF</div>
+        <div style={{fontSize:12,color:"#64748b",marginBottom:16}}>La IA extrae automáticamente todos los datos del informe Torres Gumà</div>
+        <label style={{display:"inline-block",cursor:"pointer"}}>
+          <input type="file" accept=".pdf" onChange={procesarPDF} style={{display:"none"}} disabled={loading}/>
+          <span style={{background:loading?"#94a3b8":"#2563eb",color:"#fff",padding:"10px 24px",borderRadius:8,fontSize:13,fontWeight:700,cursor:loading?"not-allowed":"pointer",display:"inline-block"}}>
+            {loading ? "⏳ Procesando PDF..." : "📁 Seleccionar PDF"}
+          </span>
+        </label>
+        {error && <div style={{marginTop:12,color:"#b91c1c",fontSize:12,fontWeight:600}}>{error}</div>}
+      </div>
+
+      {/* Lista registros */}
+      {registros.length > 0 && (
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          <div style={{fontSize:13,fontWeight:700,color:"#111827"}}>Ensayos registrados ({registros.length})</div>
+          {registros.map(r => {
+            const cc = concC[r.conclusion] || {bg:"#f1f5f9",tx:"#64748b",bd:"#e2e8f0"};
+            return (
+              <div key={r.id} onClick={()=>setSel(r===sel?null:r)}
+                style={{background:"#fff",border:`1px solid ${sel?.id===r.id?"#3b82f6":"#e2e8f0"}`,borderRadius:10,padding:"12px 16px",cursor:"pointer",transition:"all .15s"}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                  <span style={{fontFamily:"monospace",fontSize:12,fontWeight:700,color:"#1d4ed8"}}>{r.id}</span>
+                  {r.conclusion && <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:4,background:cc.bg,color:cc.tx,border:`0.5px solid ${cc.bd}`}}>{r.conclusion}</span>}
+                  <span style={{fontSize:11,color:"#6b7280",marginLeft:"auto"}}>{r.fecha_registro} · {r.archivo}</span>
+                </div>
+                <div style={{fontSize:12,fontWeight:600,color:"#374151",marginTop:4}}>{r.cliente} — {r.referencia}</div>
+                <div style={{fontSize:11,color:"#6b7280"}}>{r.recubrimiento} · OF: {r.of} · {r.ox_roja_horas}h NSS spec.</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Detalle ensayo seleccionado */}
+      {sel && (
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+          {/* Cabecera */}
+          <div style={{background:"#1e3a5f",padding:"14px 20px",color:"#fff"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div>
+                <div style={{fontSize:16,fontWeight:700}}>ENSAYO DE CORROSIÓN EN CÁMARA DE NIEBLA SALINA</div>
+                <div style={{fontSize:11,opacity:.8,marginTop:2}}>Norma DIN UNE-EN 9227 · Ensayo NSS</div>
+              </div>
+              <button onClick={()=>setSel(null)} style={{background:"rgba(255,255,255,.15)",border:"none",color:"#fff",borderRadius:6,padding:"5px 12px",cursor:"pointer",fontSize:12}}>✕ Cerrar</button>
+            </div>
+          </div>
+
+          <div style={{padding:"16px 20px",display:"flex",flexDirection:"column",gap:14}}>
+
+            {/* Datos generales */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              {[
+                ["Nombre cliente", sel.cliente],
+                ["Referencia", sel.referencia],
+                ["OF Torres Gumà", sel.of],
+                ["Cód. interno TG", sel.codigo_interno],
+                ["Albarán", sel.albaran],
+                ["Serie/Lote", sel.serie_lote],
+                ["Norma", sel.norma],
+                ["Tipo recubrimiento", sel.recubrimiento],
+              ].map(([lbl,val])=>val?(
+                <div key={lbl} style={{background:"#f8fafc",borderRadius:6,padding:"6px 10px"}}>
+                  <div style={{fontSize:9,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:".05em"}}>{lbl}</div>
+                  <div style={{fontSize:12,fontWeight:600,color:"#111827"}}>{val||"—"}</div>
+                </div>
+              ):null)}
+            </div>
+
+            {/* Denominación */}
+            {sel.denominacion && (
+              <div style={{background:"#eff6ff",borderRadius:6,padding:"8px 12px",fontSize:12,color:"#1d4ed8",fontWeight:600}}>
+                📦 {sel.denominacion}
+              </div>
+            )}
+
+            {/* Parámetros */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+              {[["Oxidación blanca",sel.ox_blanca_horas+"h"],["Oxidación roja",sel.ox_roja_horas+"h"],["Nº piezas",sel.num_piezas]].map(([lbl,val])=>(
+                <div key={lbl} style={{background:"#f8fafc",borderRadius:6,padding:"8px 12px",textAlign:"center"}}>
+                  <div style={{fontSize:9,fontWeight:700,color:"#9ca3af",textTransform:"uppercase"}}>{lbl}</div>
+                  <div style={{fontSize:18,fontWeight:700,color:"#1e3a5f"}}>{val}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Fechas */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              <div style={{background:"#f8fafc",borderRadius:6,padding:"6px 10px"}}>
+                <div style={{fontSize:9,fontWeight:700,color:"#9ca3af",textTransform:"uppercase"}}>Fecha inicio</div>
+                <div style={{fontSize:12,fontWeight:600,color:"#111827"}}>{sel.fecha_inicio||"—"}</div>
+              </div>
+              <div style={{background:"#f8fafc",borderRadius:6,padding:"6px 10px"}}>
+                <div style={{fontSize:9,fontWeight:700,color:"#9ca3af",textTransform:"uppercase"}}>Fecha fin prevista</div>
+                <div style={{fontSize:12,fontWeight:600,color:"#111827"}}>{sel.fecha_fin_prevista||"—"}</div>
+              </div>
+            </div>
+
+            {/* Tabla resultados hora a hora */}
+            {sel.resultados?.length > 0 && (
+              <div>
+                <div style={{fontSize:12,fontWeight:700,color:"#374151",marginBottom:8}}>Resultados hora a hora</div>
+                <div style={{overflowX:"auto"}}>
+                  <table style={{borderCollapse:"collapse",fontSize:10,width:"100%"}}>
+                    <thead>
+                      <tr style={{background:"#1e3a5f",color:"#fff"}}>
+                        <th style={{padding:"5px 8px",textAlign:"left"}}>Fecha</th>
+                        <th style={{padding:"5px 8px",textAlign:"center"}}>Horas</th>
+                        <th style={{padding:"5px 8px",textAlign:"center",color:"#fca5a5"}}>NOK</th>
+                        <th style={{padding:"5px 8px",textAlign:"center",color:"#fde68a"}}>ACEP</th>
+                        <th style={{padding:"5px 8px",textAlign:"center",color:"#86efac"}}>OK</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sel.resultados.map((r,i)=>(
+                        <tr key={i} style={{background:i%2===0?"#fff":"#f8fafc"}}>
+                          <td style={{padding:"4px 8px",fontWeight:500}}>{r.fecha}</td>
+                          <td style={{padding:"4px 8px",textAlign:"center",fontFamily:"monospace",fontWeight:700}}>{r.horas}</td>
+                          <td style={{padding:"4px 8px",textAlign:"center",color:r.nok>0?"#b91c1c":"#9ca3af",fontWeight:r.nok>0?700:400}}>{r.nok>0?r.nok:"—"}</td>
+                          <td style={{padding:"4px 8px",textAlign:"center",color:r.acep>0?"#854d0e":"#9ca3af",fontWeight:r.acep>0?700:400}}>{r.acep>0?r.acep:"—"}</td>
+                          <td style={{padding:"4px 8px",textAlign:"center",color:r.ok>0?"#166534":"#9ca3af",fontWeight:r.ok>0?700:400}}>{r.ok>0?r.ok:"—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Conclusión */}
+            {sel.conclusion && (()=>{
+              const cc = concC[sel.conclusion]||{bg:"#f1f5f9",tx:"#64748b",bd:"#e2e8f0"};
+              return(
+                <div style={{background:cc.bg,border:`1px solid ${cc.bd}`,borderRadius:8,padding:"12px 16px"}}>
+                  <div style={{fontSize:11,fontWeight:700,color:cc.tx,textTransform:"uppercase",letterSpacing:".05em",marginBottom:4}}>Conclusión del ensayo</div>
+                  <div style={{fontSize:15,fontWeight:700,color:cc.tx}}>{sel.conclusion}</div>
+                  {sel.ox_blanca_aparicion && <div style={{fontSize:11,color:cc.tx,marginTop:4}}>Oxidación blanca: {sel.ox_blanca_aparicion}</div>}
+                  {sel.ox_roja_aparicion   && <div style={{fontSize:11,color:cc.tx,marginTop:2}}>Oxidación roja: {sel.ox_roja_aparicion}</div>}
+                  {sel.duracion_total      && <div style={{fontSize:11,color:cc.tx,marginTop:2}}>Duración total: {sel.duracion_total}</div>}
+                  {sel.comentarios         && <div style={{fontSize:11,color:cc.tx,marginTop:6,fontStyle:"italic"}}>"{sel.comentarios}"</div>}
+                </div>
+              );
+            })()}
+
+            {/* Firmas */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,borderTop:"1px solid #f1f5f9",paddingTop:12}}>
+              {[["Laboratorio",sel.laboratorio],["Validación CNS",sel.validacion],["Fecha validación",sel.fecha_validacion]].map(([lbl,val])=>(
+                <div key={lbl} style={{background:"#f8fafc",borderRadius:6,padding:"6px 10px"}}>
+                  <div style={{fontSize:9,fontWeight:700,color:"#9ca3af",textTransform:"uppercase"}}>{lbl}</div>
+                  <div style={{fontSize:12,color:"#374151"}}>{val||"—"}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // TAB NSS COMPLETO (solución salina + cámaras + muestras)
 // ═══════════════════════════════════════════════════════════════════
 function TabNSSCompleto() {
   const [subtab, setSubtab] = useState("solucion");
-  const tabs2 = [["solucion","Solución salina"],["camaras","Control cámaras"]];
+  const tabs2 = [["solucion","Solución salina"],["camaras","Control cámaras"],["pdf","📄 Registro PDF"]];
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -452,6 +711,7 @@ function TabNSSCompleto() {
       </div>
       {subtab==="solucion"  && <SubSolucionSalina/>}
       {subtab==="camaras"   && <SubControlCamaras/>}
+      {subtab==="pdf"       && <SubRegistroPDF/>}
     </div>
   );
 }
