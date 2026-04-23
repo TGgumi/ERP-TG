@@ -597,103 +597,121 @@ const TURNO_ICONO = {"Mañana":"🌅","Tarde":"🌆","Noche":"🌙","Vacaciones"
 
 function CalendarioTurnos(){
   const HOY2 = new Date();
-  const [mes, setMes] = useState(HOY2.getMonth());
-  const [año, setAño] = useState(HOY2.getFullYear());
-  const [turnos, setTurnos] = useState({}); // {"YYYY-MM-DD:operario": turno}
-  const [propuestas, setPropuestas] = useState([]); // [{id,de,a,fecha,motivo,est}]
-  const [modalProp, setModalProp] = useState(false);
-  const [formProp, setFormProp] = useState({de:"",a:"",fecha:"",motivo:""});
+  const [modo,   setModo]   = useState("bisemanal"); // "bisemanal" | "mensual"
+  const [semana, setSemana] = useState(0); // offset semanas desde hoy (bisemanal: 0 = semana actual + siguiente)
+  const [mes,    setMes]    = useState(HOY2.getMonth());
+  const [año,    setAño]    = useState(HOY2.getFullYear());
+  const [turnos, setTurnos] = useState({});
+  const [propuestas, setPropuestas] = useState([]);
+  const [modalProp,  setModalProp]  = useState(false);
+  const [formProp,   setFormProp]   = useState({de:"",a:"",fecha:"",motivo:""});
 
-  const diasMes = new Date(año, mes+1, 0).getDate();
-  const primerDia = new Date(año, mes, 1).getDay(); // 0=dom
-  const primerLunes = primerDia===0 ? 6 : primerDia-1; // ajuste lunes=0
-  const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-  const DIAS_S = ["L","M","X","J","V","S","D"];
+  const MESES   = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  const DIAS_L  = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+  const DIAS_S  = ["L","M","X","J","V","S","D"];
 
-  function setTurno(fecha, operario, turno){
-    setTurnos(p=>({...p,[`${fecha}:${operario}`]:turno}));
+  function setTurno(fecha, op, val){ setTurnos(p=>({...p,[`${fecha}:${op}`]:val})); }
+  function getTurno(fecha, op){ return turnos[`${fecha}:${op}`]||""; }
+  const fechaStr = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  const esHoyD   = (d) => fechaStr(d)===fechaStr(HOY2);
+  const esFinde  = (d) => d.getDay()===0||d.getDay()===6;
+
+  // ── Calcular los 14 días bisemanal ──────────────────────────────
+  function getLunes(offset=0){
+    const d = new Date(HOY2);
+    const dow = d.getDay()===0?6:d.getDay()-1;
+    d.setDate(d.getDate()-dow + offset*7);
+    return d;
   }
-  function getTurno(fecha, operario){
-    return turnos[`${fecha}:${operario}`]||"";
-  }
+  const lunes14 = getLunes(semana*2);
+  const dias14  = Array.from({length:14},(_,i)=>{ const d=new Date(lunes14); d.setDate(d.getDate()+i); return d; });
+  const sem1Label = `${dias14[0].getDate()}/${dias14[0].getMonth()+1}`;
+  const sem2Label = `${dias14[7].getDate()}/${dias14[7].getMonth()+1}`;
 
-  const prevMes = () => { if(mes===0){setMes(11);setAño(a=>a-1);}else setMes(m=>m-1); };
-  const nextMes = () => { if(mes===11){setMes(0);setAño(a=>a+1);}else setMes(m=>m+1); };
+  // ── Calcular días del mes ────────────────────────────────────────
+  const diasMes  = new Date(año, mes+1, 0).getDate();
+  const prevMes  = () => { if(mes===0){setMes(11);setAño(a=>a-1);}else setMes(m=>m-1); };
+  const nextMes  = () => { if(mes===11){setMes(0);setAño(a=>a+1);}else setMes(m=>m+1); };
+  const diasArr  = Array.from({length:diasMes},(_,i)=>new Date(año,mes,i+1));
 
-  // Días del calendario (con blancos al inicio)
-  const celdas = [];
-  for(let i=0;i<primerLunes;i++) celdas.push(null);
-  for(let d=1;d<=diasMes;d++) celdas.push(d);
+  const dias = modo==="bisemanal" ? dias14 : diasArr;
 
-  const fechaStr = (d) => `${año}-${String(mes+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-  const esHoy = (d) => d===HOY2.getDate() && mes===HOY2.getMonth() && año===HOY2.getFullYear();
-  const esFinde = (d) => { const dw=new Date(año,mes,d).getDay(); return dw===0||dw===6; };
-
-  return(
-    <div style={{display:"flex",flexDirection:"column",gap:16,padding:16,height:"100%",overflowY:"auto"}}>
-
-      {/* Header */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
-        <div>
-          <div style={{fontSize:18,fontWeight:700,color:"#111827"}}>📅 Turnos y calendario</div>
-          <div style={{fontSize:12,color:"#6b7280"}}>Asignación de turnos, vacaciones y festivos</div>
-        </div>
-        <button onClick={()=>setModalProp(true)}
-          style={{background:"#2563eb",color:"#fff",border:"none",borderRadius:8,padding:"8px 16px",fontSize:12,fontWeight:700,cursor:"pointer"}}>
-          + Proponer cambio de turno
-        </button>
-      </div>
-
-      {/* Navegación mes */}
-      <div style={{display:"flex",alignItems:"center",gap:12}}>
-        <button onClick={prevMes} style={{background:"#f1f5f9",border:"0.5px solid #e2e8f0",borderRadius:6,padding:"5px 12px",cursor:"pointer",fontSize:14}}>‹</button>
-        <div style={{fontSize:15,fontWeight:700,color:"#111827",minWidth:160,textAlign:"center"}}>{MESES[mes]} {año}</div>
-        <button onClick={nextMes} style={{background:"#f1f5f9",border:"0.5px solid #e2e8f0",borderRadius:6,padding:"5px 12px",cursor:"pointer",fontSize:14}}>›</button>
-      </div>
-
-      {/* Leyenda */}
-      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-        {Object.entries(TURNO_COL).map(([t,c])=>(
-          <span key={t} style={{fontSize:10,fontWeight:600,padding:"2px 8px",borderRadius:4,background:c.bg,color:c.tx,border:`0.5px solid ${c.bd}`}}>
-            {TURNO_ICONO[t]} {t}
-          </span>
-        ))}
-      </div>
-
-      {/* Tabla operarios × días */}
+  // ── Renderizar tabla ─────────────────────────────────────────────
+  function TablaGrilla(){
+    return(
       <div style={{overflowX:"auto"}}>
-        <table style={{borderCollapse:"collapse",fontSize:10,minWidth:700,width:"100%"}}>
+        <table style={{borderCollapse:"collapse",fontSize:10,width:"100%"}}>
           <thead>
             <tr>
-              <th style={{padding:"6px 10px",textAlign:"left",fontWeight:700,color:"#374151",background:"#f8fafc",borderBottom:"1px solid #e2e8f0",position:"sticky",left:0,zIndex:2}}>Operario</th>
-              {Array.from({length:diasMes},(_,i)=>i+1).map(d=>(
-                <th key={d} style={{padding:"4px 2px",textAlign:"center",fontWeight:esFinde(d)?700:500,
-                  color:esHoy(d)?"#2563eb":esFinde(d)?"#6b7280":"#374151",
-                  background:esHoy(d)?"#eff6ff":"#f8fafc",
-                  borderBottom:"1px solid #e2e8f0",minWidth:32,fontSize:9}}>
-                  <div>{DIAS_S[new Date(año,mes,d).getDay()===0?6:new Date(año,mes,d).getDay()-1]}</div>
-                  <div style={{fontWeight:700}}>{d}</div>
+              <th style={{padding:"6px 10px",textAlign:"left",fontWeight:700,color:"#374151",background:"#f8fafc",borderBottom:"1px solid #e2e8f0",position:"sticky",left:0,zIndex:2,minWidth:100}}>
+                Operario
+              </th>
+              {modo==="bisemanal"&&(
+                <>
+                  <th colSpan={7} style={{textAlign:"center",padding:"4px 8px",fontSize:10,fontWeight:700,background:"#eff6ff",color:"#1d4ed8",borderBottom:"1px solid #e2e8f0",borderRight:"2px solid #93c5fd"}}>
+                    Semana {sem1Label} – {dias14[6].getDate()}/{dias14[6].getMonth()+1}
+                  </th>
+                  <th colSpan={7} style={{textAlign:"center",padding:"4px 8px",fontSize:10,fontWeight:700,background:"#f0fdf4",color:"#166534",borderBottom:"1px solid #e2e8f0"}}>
+                    Semana {sem2Label} – {dias14[13].getDate()}/{dias14[13].getMonth()+1}
+                  </th>
+                </>
+              )}
+              {modo==="mensual"&&dias.map((d,i)=>(
+                <th key={i} style={{padding:"3px 2px",textAlign:"center",minWidth:28,fontSize:9,
+                  fontWeight:esFinde(d)?700:500,
+                  color:esHoyD(d)?"#2563eb":esFinde(d)?"#94a3b8":"#374151",
+                  background:esHoyD(d)?"#eff6ff":"#f8fafc",
+                  borderBottom:"1px solid #e2e8f0"}}>
+                  <div>{DIAS_S[(d.getDay()===0?7:d.getDay())-1]}</div>
+                  <div style={{fontWeight:700}}>{d.getDate()}</div>
                 </th>
               ))}
             </tr>
+            {modo==="bisemanal"&&(
+              <tr>
+                <th style={{background:"#f8fafc",borderBottom:"1px solid #e2e8f0",position:"sticky",left:0,zIndex:2}}/>
+                {dias14.map((d,i)=>(
+                  <th key={i} style={{padding:"3px 2px",textAlign:"center",minWidth:38,fontSize:9,
+                    fontWeight:esFinde(d)?700:500,
+                    color:esHoyD(d)?"#2563eb":esFinde(d)?"#94a3b8":"#374151",
+                    background:esHoyD(d)?"#eff6ff":esFinde(d)?"#f8fafc":i<7?"#eff6ff22":"#f0fdf422",
+                    borderBottom:"1px solid #e2e8f0",
+                    borderRight:i===6?"2px solid #93c5fd":undefined}}>
+                    <div>{DIAS_L[(d.getDay()===0?7:d.getDay())-1]}</div>
+                    <div style={{fontWeight:700}}>{d.getDate()}/{d.getMonth()+1}</div>
+                  </th>
+                ))}
+              </tr>
+            )}
           </thead>
           <tbody>
             {OPERARIOS.filter(op=>op!=="Sin asignar").map((op,ri)=>(
               <tr key={op} style={{background:ri%2===0?"#fff":"#fafafa"}}>
-                <td style={{padding:"5px 10px",fontWeight:600,color:"#374151",whiteSpace:"nowrap",position:"sticky",left:0,background:ri%2===0?"#fff":"#fafafa",zIndex:1,borderBottom:"0.5px solid #f1f5f9"}}>
+                <td style={{padding:"5px 10px",fontWeight:600,color:"#374151",whiteSpace:"nowrap",
+                  position:"sticky",left:0,background:ri%2===0?"#fff":"#fafafa",zIndex:1,
+                  borderBottom:"0.5px solid #f1f5f9"}}>
                   {op}
                 </td>
-                {Array.from({length:diasMes},(_,i)=>i+1).map(d=>{
+                {dias.map((d,i)=>{
                   const f=fechaStr(d);
                   const t=getTurno(f,op);
                   const c=t?TURNO_COL[t]:null;
                   return(
-                    <td key={d} style={{padding:2,textAlign:"center",borderBottom:"0.5px solid #f1f5f9",background:esHoy(d)?"#eff6ff66":esFinde(d)?"#f8fafc":"transparent"}}>
+                    <td key={i} style={{padding:2,textAlign:"center",
+                      borderBottom:"0.5px solid #f1f5f9",
+                      borderRight:(modo==="bisemanal"&&i===6)?"2px solid #93c5fd":undefined,
+                      background:esHoyD(d)?"#eff6ff44":esFinde(d)?"#f8fafc":"transparent"}}>
                       <select value={t} onChange={e=>setTurno(f,op,e.target.value)}
-                        title={`${op} · ${d}/${mes+1}`}
-                        style={{fontSize:9,padding:"2px 1px",border:`0.5px solid ${c?c.bd:"#e2e8f0"}`,borderRadius:3,background:c?c.bg:"#fff",color:c?c.tx:"#9ca3af",cursor:"pointer",width:"100%",textAlign:"center",outline:"none"}}>
+                        title={`${op} · ${d.getDate()}/${d.getMonth()+1}`}
+                        style={{fontSize:modo==="bisemanal"?10:9,padding:"2px 1px",
+                          border:`0.5px solid ${c?c.bd:"#e2e8f0"}`,borderRadius:3,
+                          background:c?c.bg:"#fff",color:c?c.tx:"#9ca3af",
+                          cursor:"pointer",width:"100%",textAlign:"center",outline:"none",
+                          minWidth:modo==="bisemanal"?36:24}}>
                         <option value="">·</option>
-                        {Object.keys(TURNO_COL).map(tv=><option key={tv} value={tv}>{TURNO_ICONO[tv]} {tv.slice(0,3)}</option>)}
+                        {Object.keys(TURNO_COL).map(tv=>(
+                          <option key={tv} value={tv}>{TURNO_ICONO[tv]} {modo==="bisemanal"?tv:tv.slice(0,3)}</option>
+                        ))}
                       </select>
                     </td>
                   );
@@ -703,32 +721,85 @@ function CalendarioTurnos(){
           </tbody>
         </table>
       </div>
+    );
+  }
 
-      {/* Propuestas de cambio */}
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:14,padding:16,height:"100%",overflowY:"auto"}}>
+
+      {/* Header */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
+        <div>
+          <div style={{fontSize:18,fontWeight:700,color:"#111827"}}>📅 Turnos y calendario</div>
+          <div style={{fontSize:12,color:"#6b7280"}}>Asignación de turnos M/T/N, vacaciones y festivos</div>
+        </div>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          {/* Toggle modo */}
+          <div style={{display:"flex",background:"#f1f5f9",borderRadius:8,padding:3,gap:2}}>
+            {[["bisemanal","⊞ Bisemanal"],["mensual","📅 Mensual"]].map(([v,l])=>(
+              <button key={v} onClick={()=>setModo(v)}
+                style={{fontSize:11,padding:"5px 12px",borderRadius:6,cursor:"pointer",fontWeight:modo===v?700:500,
+                  background:modo===v?"#fff":"transparent",color:modo===v?"#1d4ed8":"#6b7280",
+                  border:modo===v?"1px solid #e2e8f0":"none",boxShadow:modo===v?"0 1px 3px rgba(0,0,0,.08)":"none"}}>
+                {l}
+              </button>
+            ))}
+          </div>
+          <button onClick={()=>setModalProp(true)}
+            style={{background:"#2563eb",color:"#fff",border:"none",borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+            + Proponer cambio
+          </button>
+        </div>
+      </div>
+
+      {/* Navegación */}
+      {modo==="bisemanal"?(
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <button onClick={()=>setSemana(s=>s-1)} style={{background:"#f1f5f9",border:"0.5px solid #e2e8f0",borderRadius:6,padding:"5px 12px",cursor:"pointer",fontSize:14}}>‹</button>
+          <div style={{fontSize:13,fontWeight:700,color:"#111827",minWidth:200,textAlign:"center"}}>
+            {semana===0?"Esta semana + siguiente":semana<0?`${Math.abs(semana)*2} semanas atrás`:`${semana*2} semanas adelante`}
+            <div style={{fontSize:10,color:"#9ca3af",fontWeight:400,marginTop:1}}>{sem1Label} — {dias14[13].getDate()}/{dias14[13].getMonth()+1}/{dias14[13].getFullYear()}</div>
+          </div>
+          <button onClick={()=>setSemana(s=>s+1)} style={{background:"#f1f5f9",border:"0.5px solid #e2e8f0",borderRadius:6,padding:"5px 12px",cursor:"pointer",fontSize:14}}>›</button>
+          {semana!==0&&<button onClick={()=>setSemana(0)} style={{fontSize:10,padding:"4px 10px",borderRadius:6,cursor:"pointer",background:"#eff6ff",border:"0.5px solid #93c5fd",color:"#1d4ed8",fontWeight:600}}>Hoy</button>}
+        </div>
+      ):(
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <button onClick={prevMes} style={{background:"#f1f5f9",border:"0.5px solid #e2e8f0",borderRadius:6,padding:"5px 12px",cursor:"pointer",fontSize:14}}>‹</button>
+          <div style={{fontSize:14,fontWeight:700,color:"#111827",minWidth:160,textAlign:"center"}}>{MESES[mes]} {año}</div>
+          <button onClick={nextMes} style={{background:"#f1f5f9",border:"0.5px solid #e2e8f0",borderRadius:6,padding:"5px 12px",cursor:"pointer",fontSize:14}}>›</button>
+        </div>
+      )}
+
+      {/* Leyenda */}
+      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+        {Object.entries(TURNO_COL).map(([t,c])=>(
+          <span key={t} style={{fontSize:10,fontWeight:600,padding:"2px 8px",borderRadius:4,background:c.bg,color:c.tx,border:`0.5px solid ${c.bd}`}}>
+            {TURNO_ICONO[t]} {t}
+          </span>
+        ))}
+      </div>
+
+      {/* Tabla */}
+      <TablaGrilla/>
+
+      {/* Propuestas */}
       {propuestas.length>0&&(
         <div>
-          <div style={{fontSize:13,fontWeight:700,color:"#111827",marginBottom:8}}>📋 Propuestas de cambio de turno</div>
+          <div style={{fontSize:13,fontWeight:700,color:"#111827",marginBottom:8}}>📋 Propuestas de cambio</div>
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
             {propuestas.map(p=>(
               <div key={p.id} style={{background:p.est==="Aprobada"?"#f0fdf4":p.est==="Rechazada"?"#fef2f2":"#fffbeb",border:`0.5px solid ${p.est==="Aprobada"?"#86efac":p.est==="Rechazada"?"#fca5a5":"#fde68a"}`,borderRadius:8,padding:"10px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}>
                 <div>
-                  <div style={{fontSize:12,fontWeight:600,color:"#111827"}}>
-                    {p.de} ↔ {p.a} · <span style={{fontFamily:"monospace"}}>{p.fecha}</span>
-                  </div>
+                  <div style={{fontSize:12,fontWeight:600,color:"#111827"}}>{p.de} ↔ {p.a} · <span style={{fontFamily:"monospace"}}>{p.fecha}</span></div>
                   <div style={{fontSize:11,color:"#6b7280",marginTop:2}}>{p.motivo}</div>
                 </div>
                 <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                  <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:4,
-                    background:p.est==="Aprobada"?"#dcfce7":p.est==="Rechazada"?"#fee2e2":"#fef9c3",
-                    color:p.est==="Aprobada"?"#166534":p.est==="Rechazada"?"#b91c1c":"#854d0e"}}>
-                    {p.est}
-                  </span>
+                  <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:4,background:p.est==="Aprobada"?"#dcfce7":p.est==="Rechazada"?"#fee2e2":"#fef9c3",color:p.est==="Aprobada"?"#166534":p.est==="Rechazada"?"#b91c1c":"#854d0e"}}>{p.est}</span>
                   {p.est==="Pendiente"&&(
                     <>
-                      <button onClick={()=>setPropuestas(pr=>pr.map(x=>x.id===p.id?{...x,est:"Aprobada"}:x))}
-                        style={{fontSize:10,padding:"3px 8px",borderRadius:4,cursor:"pointer",background:"#dcfce7",border:"0.5px solid #86efac",color:"#166534",fontWeight:700}}>✓ Aprobar</button>
-                      <button onClick={()=>setPropuestas(pr=>pr.map(x=>x.id===p.id?{...x,est:"Rechazada"}:x))}
-                        style={{fontSize:10,padding:"3px 8px",borderRadius:4,cursor:"pointer",background:"#fee2e2",border:"0.5px solid #fca5a5",color:"#b91c1c",fontWeight:700}}>✕ Rechazar</button>
+                      <button onClick={()=>setPropuestas(pr=>pr.map(x=>x.id===p.id?{...x,est:"Aprobada"}:x))} style={{fontSize:10,padding:"3px 8px",borderRadius:4,cursor:"pointer",background:"#dcfce7",border:"0.5px solid #86efac",color:"#166534",fontWeight:700}}>✓ Aprobar</button>
+                      <button onClick={()=>setPropuestas(pr=>pr.map(x=>x.id===p.id?{...x,est:"Rechazada"}:x))} style={{fontSize:10,padding:"3px 8px",borderRadius:4,cursor:"pointer",background:"#fee2e2",border:"0.5px solid #fca5a5",color:"#b91c1c",fontWeight:700}}>✕ Rechazar</button>
                     </>
                   )}
                 </div>
@@ -738,7 +809,7 @@ function CalendarioTurnos(){
         </div>
       )}
 
-      {/* Modal propuesta cambio */}
+      {/* Modal propuesta */}
       {modalProp&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:700,padding:16}}
           onClick={e=>{if(e.target===e.currentTarget)setModalProp(false);}}>
@@ -763,7 +834,7 @@ function CalendarioTurnos(){
               <div>
                 <label style={{fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:".05em",display:"block",marginBottom:4}}>Motivo</label>
                 <textarea value={formProp.motivo} onChange={e=>setFormProp(p=>({...p,motivo:e.target.value}))} rows={2}
-                  placeholder="Motivo del cambio de turno..."
+                  placeholder="Motivo del cambio..."
                   style={{width:"100%",padding:"8px 10px",border:"1.5px solid #d1d5db",borderRadius:7,fontSize:13,color:"#111827",outline:"none",resize:"vertical",fontFamily:"inherit",boxSizing:"border-box"}}/>
               </div>
             </div>
@@ -784,24 +855,6 @@ function CalendarioTurnos(){
     </div>
   );
 }
-
-
-// ─── BUZÓN DE QUEJAS Y MEJORAS ────────────────────────────────────
-const CATEGORIAS = ["Seguridad","Maquinaria","Organización","Condiciones de trabajo","Proceso productivo","Comunicación","Otra"];
-const TIPOS = ["Queja","Mejora","Sugerencia"];
-const PRIORIDADES = ["Baja","Media","Alta","Urgente"];
-const PRIO_COL = {
-  "Baja":    {bg:"#f1f5f9",tx:"#64748b",bd:"#e2e8f0"},
-  "Media":   {bg:"#fef9c3",tx:"#854d0e",bd:"#fde68a"},
-  "Alta":    {bg:"#ffedd5",tx:"#c2410c",bd:"#fed7aa"},
-  "Urgente": {bg:"#fee2e2",tx:"#b91c1c",bd:"#fca5a5"},
-};
-const TIPO_COL = {
-  "Queja":     {bg:"#fee2e2",tx:"#b91c1c",bd:"#fca5a5",ic:"🚨"},
-  "Mejora":    {bg:"#dbeafe",tx:"#1d4ed8",bd:"#93c5fd",ic:"💡"},
-  "Sugerencia":{bg:"#d1fae5",tx:"#065f46",bd:"#6ee7b7",ic:"✨"},
-};
-
 function BuzonMejoras(){
   const { mejoras, setMejoras } = useContext(ERPContext);
   const [modal, setModal] = useState(false);
