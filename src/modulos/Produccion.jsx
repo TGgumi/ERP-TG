@@ -72,12 +72,16 @@ function OFModal({ onClose, onSave }) {
   const [fe, setFe]       = useState("");
   const [lote, setLote]   = useState("L-001");
   const [prio, setPrio]   = useState("Normal");
+  const [qCli, setQCli]   = useState("");
+  const [qHom, setQHom]   = useState("");
 
   const actH    = HOMS.filter(h => h.cli===cliId && h.est==="Activa");
   const inactH  = HOMS.filter(h => h.cli===cliId && h.est!=="Activa");
   const hom     = HOMS.find(h => h.id===homId);
   const maqMant = hom && MAQUINAS.find(m => m.id===hom.maq)?.est==="Mantenimiento";
   const canNext = (step===1&&cliId)||(step===2&&homId)||(step===3&&kg&&fe)||step===4;
+  function goNext(){ if(canNext){ setStep(s=>s+1); setQCli(""); setQHom(""); } }
+  function goBack(){ setStep(s=>s-1); setQCli(""); setQHom(""); }
   const STEPS   = ["Cliente","Homologación","Detalles","Confirmar"];
   const btn0    = { border:"1px solid #e5e7eb", background:"transparent", color:"#111827", padding:"5px 12px", borderRadius:6, cursor:"pointer", fontSize:12, fontWeight:500 };
 
@@ -106,14 +110,18 @@ function OFModal({ onClose, onSave }) {
         <div style={{padding:18,overflowY:"auto",flex:1}}>
           {step===1&&(
             <div>
-              <p style={{fontSize:11.5,color:"#6b7280",marginBottom:12}}>Solo clientes con homologaciones activas pueden generar OFs.</p>
-              <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:310,overflowY:"auto"}}>
-                {CLIENTES.map(c=>{
+              <p style={{fontSize:11.5,color:"#6b7280",marginBottom:8}}>Solo clientes con homologaciones activas pueden generar OFs.</p>
+              <div style={{position:"relative",marginBottom:10}}>
+                <span style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"#9ca3af",pointerEvents:"none"}}>⌕</span>
+                <input value={qCli} onChange={e=>setQCli(e.target.value)} placeholder="Buscar cliente..." style={{border:"1px solid #e5e7eb",borderRadius:6,padding:"6px 10px 6px 28px",fontSize:12,width:"100%",boxSizing:"border-box",outline:"none",color:"#111827",background:"#f9fafb"}}/>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:290,overflowY:"auto"}}>
+                {CLIENTES.filter(c=>!qCli||c.n.toLowerCase().includes(qCli.toLowerCase())||c.s?.toLowerCase().includes(qCli.toLowerCase())).map(c=>{
                   const nA=HOMS.filter(h=>h.cli===c.id&&h.est==="Activa").length;
                   const nT=HOMS.filter(h=>h.cli===c.id).length;
                   const dis=nA===0, sel=cliId===c.id;
                   return(
-                    <div key={c.id} onClick={()=>!dis&&setCli(c.id)} style={{padding:"10px 12px",borderRadius:7,display:"flex",alignItems:"center",gap:10,cursor:dis?"not-allowed":"pointer",opacity:dis?.4:1,border:`1px solid ${sel?"#93c5fd":"#e5e7eb"}`,background:sel?"#eff6ff":"#ffffff"}}>
+                    <div key={c.id} onClick={()=>{if(!dis){setCli(c.id);setQCli("");}}} style={{padding:"10px 12px",borderRadius:7,display:"flex",alignItems:"center",gap:10,cursor:dis?"not-allowed":"pointer",opacity:dis?.4:1,border:`1px solid ${sel?"#93c5fd":"#e5e7eb"}`,background:sel?"#eff6ff":"#ffffff"}}>
                       <div style={{flex:1}}>
                         <div style={{fontSize:12,fontWeight:500}}>{c.n}</div>
                         <div style={{fontSize:10.5,color:"#6b7280",marginTop:1}}>{c.s}</div>
@@ -130,13 +138,17 @@ function OFModal({ onClose, onSave }) {
           )}
           {step===2&&(
             <div>
-              <p style={{fontSize:11.5,color:"#6b7280",marginBottom:10}}>Referencias de <b style={{color:"#111827"}}>{cn(cliId)}</b></p>
+              <p style={{fontSize:11.5,color:"#6b7280",marginBottom:8}}>Referencias de <b style={{color:"#111827"}}>{cn(cliId)}</b></p>
+              <div style={{position:"relative",marginBottom:10}}>
+                <span style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"#9ca3af",pointerEvents:"none"}}>⌕</span>
+                <input value={qHom} onChange={e=>setQHom(e.target.value)} placeholder="Buscar referencia, código, máquina..." style={{border:"1px solid #e5e7eb",borderRadius:6,padding:"6px 10px 6px 28px",fontSize:12,width:"100%",boxSizing:"border-box",outline:"none",color:"#111827",background:"#f9fafb"}}/>
+              </div>
               {actH.length===0&&<Al type="w">⚠ Sin homologaciones activas.</Al>}
-              <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:310,overflowY:"auto"}}>
-                {actH.map(h=>{
+              <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:290,overflowY:"auto"}}>
+                {actH.filter(h=>!qHom||h.desc.toLowerCase().includes(qHom.toLowerCase())||h.ref?.toLowerCase().includes(qHom.toLowerCase())||h.cod?.toLowerCase().includes(qHom.toLowerCase())||h.maq?.toLowerCase().includes(qHom.toLowerCase())).map(h=>{
                   const sel=homId===h.id;
                   return(
-                    <div key={h.id} onClick={()=>setHom(h.id)} style={{padding:"10px 12px",borderRadius:7,display:"flex",alignItems:"center",gap:10,cursor:"pointer",border:`1px solid ${sel?"#93c5fd":"#e5e7eb"}`,background:sel?"#eff6ff":"#ffffff"}}>
+                    <div key={h.id} onClick={()=>{setHom(h.id);setQHom("");}} style={{padding:"10px 12px",borderRadius:7,display:"flex",alignItems:"center",gap:10,cursor:"pointer",border:`1px solid ${sel?"#93c5fd":"#e5e7eb"}`,background:sel?"#eff6ff":"#ffffff"}}>
                       <Dot top={h.top} sz={10}/>
                       <div style={{flex:1}}>
                         <div style={{fontSize:12,fontWeight:500}}>{h.desc}</div>
@@ -211,10 +223,10 @@ function OFModal({ onClose, onSave }) {
           )}
         </div>
         <div style={{padding:"12px 18px",borderTop:"1px solid #f3f4f6",display:"flex",justifyContent:"flex-end",gap:8,flexShrink:0}}>
-          {step>1&&<button onClick={()=>setStep(s=>s-1)} style={btn0}>← Atrás</button>}
+          {step>1&&<button onClick={goBack} style={btn0}>← Atrás</button>}
           <button onClick={onClose} style={btn0}>Cancelar</button>
           {step<4
-            ?<button onClick={()=>canNext&&setStep(s=>s+1)} style={{...ck("info"),padding:"5px 13px",borderRadius:6,cursor:canNext?"pointer":"not-allowed",fontSize:12,fontWeight:500,opacity:canNext?1:.45}}>Siguiente →</button>
+            ?<button onClick={goNext} style={{...ck("info"),padding:"5px 13px",borderRadius:6,cursor:canNext?"pointer":"not-allowed",fontSize:12,fontWeight:500,opacity:canNext?1:.45}}>Siguiente →</button>
             :<button onClick={()=>{onSave({id:`OF-${nOF++}`,hid:hom.id,cli:cliId,maq:hom.maq,kg:parseInt(kg),top:hom.top,est:"Pendiente",prio,fe,lote,alb:null});onClose();}} style={{...ck("success"),padding:"5px 13px",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:500}}>✓ Crear OF</button>
           }
         </div>
