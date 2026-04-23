@@ -115,19 +115,21 @@ const PLANTA_COL = {
   "Esparreguera": {bg:"#14532d",tx:"#fff",bd:"#22c55e",light:"#f0fdf4",lightTx:"#166534"},
 };
 const MAQUINAS_LIST=[
-  {id:"TWIN44",   linea:"TWIN",     tipo:"Recubrimiento", usaHornos:true,  planta:"Vitoria"},
-  {id:"TWIN02",   linea:"TWIN",     tipo:"Recubrimiento", usaHornos:true,  planta:"Vitoria"},
+  // ── VITORIA ──────────────────────────────────────────────────────
   {id:"PRE-02",   linea:"TWIN",     tipo:"Pretratamiento",usaHornos:false, planta:"Vitoria"},
   {id:"GR-02",    linea:"TWIN",     tipo:"Granallado",    usaHornos:false, planta:"Vitoria"},
-  {id:"MN-01",    linea:"MN",       tipo:"Recubrimiento", usaHornos:true,  planta:"Esparreguera"},
-  {id:"PRE-01",   linea:"MN",       tipo:"Pretratamiento",usaHornos:false, planta:"Esparreguera"},
-  {id:"GR-01",    linea:"MN",       tipo:"Granallado",    usaHornos:false, planta:"Esparreguera"},
-  {id:"MN Bastid",linea:"BASTIDOR", tipo:"Recubrimiento", usaHornos:false, planta:"Vitoria"},
-  {id:"GR-BAST",  linea:"BASTIDOR", tipo:"Granallado",    usaHornos:false, planta:"Vitoria"},
-  {id:"DE02",     linea:"BASTIDOR", tipo:"Desengrasado",  usaHornos:false, planta:"Vitoria"},
+  {id:"TWIN44",   linea:"TWIN",     tipo:"Recubrimiento", usaHornos:true,  planta:"Vitoria"},
+  {id:"TWIN02",   linea:"TWIN",     tipo:"Recubrimiento", usaHornos:true,  planta:"Vitoria"},
   {id:"DB02",     linea:"BASTIDOR", tipo:"Desengrasado",  usaHornos:false, planta:"Vitoria"},
+  {id:"DE02",     linea:"BASTIDOR", tipo:"Desengrasado",  usaHornos:false, planta:"Vitoria"},
+  {id:"GR-BAST",  linea:"BASTIDOR", tipo:"Granallado",    usaHornos:false, planta:"Vitoria"},
+  {id:"MN Bastid",linea:"BASTIDOR", tipo:"Recubrimiento", usaHornos:false, planta:"Vitoria"},
   {id:"DC02",     linea:"DESAC.",   tipo:"Desaceitado",   usaHornos:false, planta:"Vitoria"},
   {id:"MALLADO",  linea:"MALLADO",  tipo:"Mallado",       usaHornos:false, planta:"Vitoria"},
+  // ── ESPARREGUERA ─────────────────────────────────────────────────
+  {id:"PRE-01",   linea:"MN",       tipo:"Pretratamiento",usaHornos:false, planta:"Esparreguera"},
+  {id:"GR-01",    linea:"MN",       tipo:"Granallado",    usaHornos:false, planta:"Esparreguera"},
+  {id:"MN-01",    linea:"MN",       tipo:"Recubrimiento", usaHornos:true,  planta:"Esparreguera"},
 ];
 
 const EC={"Produciendo":{bg:"#166534",bd:"#22c55e",tx:"#fff"},"Espera":{bg:"#1e40af",bd:"#60a5fa",tx:"#fff"},"Avería":{bg:"#991b1b",bd:"#ef4444",tx:"#fff"},"Parada":{bg:"#374151",bd:"#9ca3af",tx:"#fff"},"Ajuste":{bg:"#92400e",bd:"#f59e0b",tx:"#fff"},"Limpieza":{bg:"#5b21b6",bd:"#a78bfa",tx:"#fff"},"Mantenimiento":{bg:"#78350f",bd:"#fbbf24",tx:"#fff"}};
