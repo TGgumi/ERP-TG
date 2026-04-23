@@ -1,5 +1,6 @@
 // src/modulos/OficinaTecnica.jsx
-import { useState } from "react";
+import { useState, useContext } from "react";
+import { ERPContext } from "../ERP";
 import { CLIENTES, MAQUINAS, cn } from "../datos";
 import { Tabs, Bdg, Card, Tbl, Al, KRow } from "../ui";
 
@@ -101,7 +102,13 @@ function Sep({ label }){ return <div style={{display:"flex",alignItems:"center",
 
 // ─── TAB FICHAS TÉCNICAS ──────────────────────────────────────────
 function TabFichas(){
-  const [fichas,setFichas] = useState(FICHAS_INIT);
+  const { fichas: fichasCtx, setFichas: setFichasCtx } = useContext(ERPContext);
+  // Inicializar contexto con datos locales si está vacío
+  const fichas = fichasCtx.length > 0 ? fichasCtx : FICHAS_INIT;
+  function setFichas(fn) {
+    const next = typeof fn === "function" ? fn(fichas) : fn;
+    setFichasCtx(next);
+  }
   const [sel,setSel]       = useState(null);
   const [q,setQ]           = useState("");
   const [modal,setModal]   = useState(null); // null | "nueva" | "editar" | "version"
@@ -113,7 +120,7 @@ function TabFichas(){
   const ficha = fichas.find(f=>f.id===sel);
 
   function abrirNueva(){
-    setForm({id:`FT-${String(fichas.length+1).padStart(3,"0")}`,version:"v1",estado:"Borrador",cli:CLIENTES[0].id,cod:"",ref_cli:"",desc:"",tipo_rec:"",proceso:"",esp_min:"",esp_max:"",esp_und:"μm",par_apriete:"",resist_corr:"",norma:"",norma_tt:"",peso_ud:"",color:"",aprobado_por:"",fecha_aprob:"",obs:""});
+    setForm({id:`FT-${String(fichas.length+1).padStart(3,"0")}`,version:"v1",estado:"Borrador",cli:CLIENTES[0].id,cod:"",ref_cli:"",desc:"",tipo_rec:"",proceso:"",esp_min:"",esp_max:"",esp_und:"μm",par_apriete:"",resist_corr:"",norma:"",norma_tt:"",peso_ud:"",color:"",aprobado_por:"",fecha_aprob:"",obs:"",foto:null});
     setModal("nueva");
   }
   function abrirEditar(){
@@ -160,8 +167,13 @@ function TabFichas(){
                   <span style={{fontFamily:"monospace",fontSize:10.5,fontWeight:600,color:act?"#1d4ed8":"#9ca3af"}}>{f.id} · {f.version}</span>
                   {badge(f.estado)}
                 </div>
-                <div style={{fontSize:12,fontWeight:600,color:"#111827",marginBottom:2}}>{f.desc}</div>
-                <div style={{fontSize:10.5,color:"#6b7280"}}>{cn(f.cli)} · {f.tipo_rec}</div>
+                <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                  {f.foto&&<img src={f.foto} alt={f.desc} style={{width:36,height:36,objectFit:"cover",borderRadius:5,border:"0.5px solid #e2e8f0",flexShrink:0}}/>}
+                  <div style={{minWidth:0}}>
+                    <div style={{fontSize:12,fontWeight:600,color:"#111827",marginBottom:2}}>{f.desc}</div>
+                    <div style={{fontSize:10.5,color:"#6b7280"}}>{cn(f.cli)} · {f.tipo_rec}</div>
+                  </div>
+                </div>
               </div>
             );
           })}
@@ -181,7 +193,10 @@ function TabFichas(){
           {/* Header */}
           <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:12,padding:"16px 20px"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
-              <div><div style={{fontSize:17,fontWeight:700}}>{ficha.desc}</div><div style={{fontSize:11,color:"#9ca3af",marginTop:3,fontFamily:"monospace"}}>{ficha.cod} · Ref. cliente: {ficha.ref_cli}</div></div>
+              <div style={{display:"flex",gap:14,alignItems:"flex-start"}}>
+                {ficha.foto&&<img src={ficha.foto} alt={ficha.desc} style={{width:72,height:72,objectFit:"cover",borderRadius:8,border:"1px solid #e2e8f0",flexShrink:0}}/>}
+                <div><div style={{fontSize:17,fontWeight:700}}>{ficha.desc}</div><div style={{fontSize:11,color:"#9ca3af",marginTop:3,fontFamily:"monospace"}}>{ficha.cod} · Ref. cliente: {ficha.ref_cli}</div></div>
+              </div>
               <div style={{display:"flex",gap:8,alignItems:"center"}}>{badge(ficha.estado)}<span style={{fontSize:11,color:"#9ca3af",fontFamily:"monospace"}}>{ficha.version}</span></div>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:8}}>
@@ -265,6 +280,16 @@ function TabFichas(){
             <Campo label="Aprobado por"><input value={form.aprobado_por||""} onChange={ff("aprobado_por")} style={inp}/></Campo>
             <Campo label="Fecha aprobación"><input type="date" value={form.fecha_aprob||""} onChange={ff("fecha_aprob")} style={inp}/></Campo>
           </Row2>
+          <Campo label="Foto de la referencia">
+            <div style={{display:"flex",gap:10,alignItems:"center"}}>
+              <label style={{cursor:"pointer",display:"inline-flex",alignItems:"center",gap:6,background:"#f1f5f9",border:"1px dashed #cbd5e1",borderRadius:7,padding:"7px 14px",fontSize:12,color:"#475569",fontWeight:600}}>
+                <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>setForm(p=>({...p,foto:ev.target.result}));r.readAsDataURL(f);}}/>
+                📷 Subir foto
+              </label>
+              {form.foto&&<img src={form.foto} alt="preview" style={{width:60,height:60,objectFit:"cover",borderRadius:7,border:"1px solid #e2e8f0"}}/>}
+              {form.foto&&<button type="button" onClick={()=>setForm(p=>({...p,foto:null}))} style={{background:"#fee2e2",border:"0.5px solid #fca5a5",color:"#b91c1c",borderRadius:5,padding:"3px 8px",cursor:"pointer",fontSize:11}}>✕ Quitar</button>}
+            </div>
+          </Campo>
           <Campo label="Observaciones"><textarea value={form.obs||""} onChange={ff("obs")} rows={2} style={{...inp,resize:"vertical",fontFamily:"inherit"}}/></Campo>
         </Modal>
       )}
@@ -434,6 +459,16 @@ function TabRecetas({ fichas }){
               <Campo key={k} label={l}><input type="number" step="0.01" value={v||0} onChange={ff(k)} style={inpSm}/></Campo>
             ))}
           </div>
+          <Campo label="Foto de la referencia">
+            <div style={{display:"flex",gap:10,alignItems:"center"}}>
+              <label style={{cursor:"pointer",display:"inline-flex",alignItems:"center",gap:6,background:"#f1f5f9",border:"1px dashed #cbd5e1",borderRadius:7,padding:"7px 14px",fontSize:12,color:"#475569",fontWeight:600}}>
+                <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>setForm(p=>({...p,foto:ev.target.result}));r.readAsDataURL(f);}}/>
+                📷 Subir foto
+              </label>
+              {form.foto&&<img src={form.foto} alt="preview" style={{width:60,height:60,objectFit:"cover",borderRadius:7,border:"1px solid #e2e8f0"}}/>}
+              {form.foto&&<button type="button" onClick={()=>setForm(p=>({...p,foto:null}))} style={{background:"#fee2e2",border:"0.5px solid #fca5a5",color:"#b91c1c",borderRadius:5,padding:"3px 8px",cursor:"pointer",fontSize:11}}>✕ Quitar</button>}
+            </div>
+          </Campo>
           <Campo label="Observaciones"><textarea value={form.obs||""} onChange={ff("obs")} rows={2} style={{...inp,resize:"vertical",fontFamily:"inherit"}}/></Campo>
         </Modal>
       )}

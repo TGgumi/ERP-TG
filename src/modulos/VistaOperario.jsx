@@ -132,7 +132,7 @@ function FTag({f}){
   return<span style={{display:"inline-flex",padding:"1px 5px",borderRadius:4,fontSize:9.5,fontWeight:700,background:c+"22",color:c,border:`0.5px solid ${c}55`}}>{f}</span>;
 }
 
-function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,operario,confirmadas,bloqueadas}){
+function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,confirmadas,bloqueadas}){
   const s=SC[sem(o.fentrega)];
   const c=cic(o,maq);
   const a=atr(o.fentrega);
@@ -157,6 +157,7 @@ function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,operario,confirmadas,blo
         <div style={{fontSize:11,color:s.tx,opacity:.85,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:220}}>{o.cliente}</div>
         <div style={{fontSize:10.5,color:s.tx,opacity:.7,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:220}}>{o.proceso}</div>
         <div style={{fontSize:10,color:s.tx,opacity:.55,marginTop:1}}>ref: {o.ref}</div>
+        {(()=>{const fot=(fichas||[]).find(f=>f.ref_cli===o.ref||f.desc===o.ref)?.foto;return fot?<img src={fot} alt={o.ref} style={{marginTop:5,width:48,height:48,objectFit:"cover",borderRadius:6,border:"1px solid #e2e8f0"}}/>:null;})()}
         {/* Ruta de proceso */}
         <div style={{display:"flex",gap:3,marginTop:4,flexWrap:"wrap",alignItems:"center"}}>
           {RUTA_ORDEN.filter(m=>o.kgCesta[m]).map((m,i,arr)=>{
@@ -218,7 +219,7 @@ function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,operario,confirmadas,blo
   );
 }
 
-function HornoCard({maq,num,ofs_h,onNC,onOK,onDeshacer,onDeshacerNC,operario,confirmadas,bloqueadas}){
+function HornoCard({maq,num,ofs_h,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,confirmadas,bloqueadas}){
   const [open,setOpen]=useState(true);
   const tot=ofs_h.reduce((s,o)=>s+cic(o,maq),0);
   const ok=tot>=HMIN&&tot<=HMAX;
@@ -247,14 +248,14 @@ function HornoCard({maq,num,ofs_h,onNC,onOK,onDeshacer,onDeshacerNC,operario,con
       </div>
       {open&&(
         <div style={{paddingLeft:6,paddingTop:5,display:"flex",flexDirection:"column",gap:4}}>
-          {ofs_h.map((o,i)=><OFRow key={`${o.of}-${i}`} o={o} maq={maq} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} confirmadas={confirmadas} bloqueadas={bloqueadas}/>)}
+          {ofs_h.map((o,i)=><OFRow key={`${o.of}-${i}`} o={o} maq={maq} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} fichas={fichas} confirmadas={confirmadas} bloqueadas={bloqueadas}/>)}
         </div>
       )}
     </div>
   );
 }
 
-function VistaMaquina({maq,plan,usaHornos,est,onCambiarEst,operario,onCambiarOperario,onNC,onOK,onDeshacer,onDeshacerNC,confirmadas,bloqueadas}){
+function VistaMaquina({maq,plan,usaHornos,est,onCambiarEst,operario,onCambiarOperario,onNC,onOK,onDeshacer,onDeshacerNC,fichas,confirmadas,bloqueadas}){
   const col=EC[est]||EC["Espera"];
   const hornos={};
   if(usaHornos){plan.forEach(o=>{const h=o.horno||1;if(!hornos[h])hornos[h]=[];hornos[h].push(o);});}
@@ -300,12 +301,12 @@ function VistaMaquina({maq,plan,usaHornos,est,onCambiarEst,operario,onCambiarOpe
         ):usaHornos?(
           // Vista con hornos (TWIN44, TWIN02, MN-01)
           Object.entries(hornos).map(([h,ofs_h])=>(
-            <HornoCard key={h} maq={maq} num={+h} ofs_h={ofs_h} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} confirmadas={confirmadas} bloqueadas={bloqueadas}/>
+            <HornoCard key={h} maq={maq} num={+h} ofs_h={ofs_h} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} fichas={fichas} confirmadas={confirmadas} bloqueadas={bloqueadas}/>
           ))
         ):(
           // Vista sin hornos — lista directa
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            {plan.map((o,i)=><OFRow key={`${o.of}-${i}`} o={o} maq={maq} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} confirmadas={confirmadas} bloqueadas={bloqueadas}/>)}
+            {plan.map((o,i)=><OFRow key={`${o.of}-${i}`} o={o} maq={maq} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} fichas={fichas} confirmadas={confirmadas} bloqueadas={bloqueadas}/>)}
           </div>
         )}
       </div>
@@ -1005,7 +1006,7 @@ function BuzonMejoras(){
 
 // ─── MÓDULO PRINCIPAL ─────────────────────────────────────────────
 export default function VistaOperario(){
-  const {ncs,setNcs,ctrl,setCtrl,bloqueadas,setBloqueadas}=useContext(ERPContext);
+  const {ncs,setNcs,ctrl,setCtrl,bloqueadas,setBloqueadas,fichas}=useContext(ERPContext);
   const [maqActiva,setMaqActiva]=useState("TWIN44");
   const [ests,setEsts]=useState({"PRE-01":"Produciendo","PRE-02":"Produciendo","GR-01":"Produciendo","GR-02":"Espera","TWIN44":"Produciendo","TWIN02":"Ajuste","MN-01":"Produciendo","DC02":"Produciendo","DE02":"Espera","DB02":"Limpieza","GR-BAST":"Produciendo","MN Bastid":"Produciendo","MALLADO":"Espera"});
   const [mNC,setMNC]=useState(null);
@@ -1181,6 +1182,7 @@ export default function VistaOperario(){
       {/* ── PANEL MÁQUINA ACTIVA ── */}
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
         <VistaMaquina
+          fichas={fichas||[]}
           maq={maqActiva}
           plan={planActual}
           usaHornos={maqInfo.usaHornos}

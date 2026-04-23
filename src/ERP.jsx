@@ -489,6 +489,7 @@ export default function ERP() {
   const [ctrl, setCtrl] = useState(CTRL_INIT);
   const [bloqueadas, setBloqueadas] = useState([]);
   const [mejoras,    setMejoras]    = useState([]);
+  const [fichas,     setFichas]     = useState([]);
   const [modalMejora,setModalMejora]= useState(false);
 
   const oAc   = ofs.filter(o  => ["En Curso","Control Final","Expedición"].includes(o.est)).length;
@@ -500,7 +501,7 @@ export default function ERP() {
   const mejorasPend = mejoras.filter(m=>m.estado==="Pendiente").length;
 
   const getBadge = (d) => ({ produccion:oAc, calidad:ncsAb, mantenimiento:mVhoy, laboratorio:nok, gerencia:mejorasPend }[d] || 0);
-  const ctx = { ofs, setOfs, ncs, setNcs, mant, setMant, ctrl, setCtrl, bloqueadas, setBloqueadas, mejoras, setMejoras, mVhoy, oAc, ncsAb };
+  const ctx = { ofs, setOfs, ncs, setNcs, mant, setMant, ctrl, setCtrl, bloqueadas, setBloqueadas, mejoras, setMejoras, fichas, setFichas, mVhoy, oAc, ncsAb };
   const { comp: Modulo, titulo } = MODULOS[dept] || MODULOS.gerencia;
 
   return (
