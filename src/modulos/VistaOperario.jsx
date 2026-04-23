@@ -405,6 +405,7 @@ function ModalControl({maqId, of_, onClose, onGuardar}){
   }
 
   const esNOK = resultado === "NOK";
+  const genNC = esNOK; // genera NC automáticamente si es NOK
   // Pintura: validar que haya al menos 1 foto pieza y la foto cinta
   const canSave = esPintura
     ? fotosPiezas.some(f=>f) && fotoCinta
