@@ -1613,6 +1613,19 @@ function badgeResultado(r) {
 
 
 
+// ─── COMPONENTES RT_ (helpers para formularios de retrabajos) ─────
+const RT_Modal = Modal;
+const RT_Campo = Campo;
+function RT_Sep({ label }) {
+  return <div style={{gridColumn:"1/-1",borderBottom:"1px solid #e5e7eb",paddingBottom:4,marginBottom:2,fontWeight:700,fontSize:11,color:"#6b7280",textTransform:"uppercase",letterSpacing:".06em"}}>{label}</div>;
+}
+function RT_R2({ c=[] }) {
+  return <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>{c}</div>;
+}
+function RT_R3({ c=[] }) {
+  return <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>{c}</div>;
+}
+
 // ─── MODAL NUEVO RETRABAJO ────────────────────────────────────────
 function ModalNuevo({ total, onClose, onGuardar }) {
   const [f, setF] = useState({
