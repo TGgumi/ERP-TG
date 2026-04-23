@@ -2071,5 +2071,4 @@ export default function Calidad(){
       {tab==="retrabajos" && <TabRetrabajos/>}
     </div>
   );
-
 }
