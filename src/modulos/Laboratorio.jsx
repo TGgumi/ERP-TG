@@ -463,7 +463,7 @@ function SubRegistroPDF() {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-api-key": API_KEY, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
         body: JSON.stringify({
-          model: "claude-opus-4-5",
+          model: "claude-sonnet-4-20250514",
           max_tokens: 2000,
           messages: [{
             role: "user",
@@ -503,10 +503,15 @@ Devuelve SOLO un JSON con esta estructura exacta, sin markdown ni explicaciones:
         })
       });
 
-      const data = await resp.json();
+      const rawText = await resp.text();
+      let data;
+      try { data = JSON.parse(rawText); } catch(e) { throw new Error("API no devolvió JSON válido: " + rawText.slice(0,200)); }
+      if(data.error) throw new Error("API error: " + data.error.message);
       const txt = data.content?.find(b => b.type === "text")?.text || "";
+      if(!txt) throw new Error("Respuesta vacía de la IA");
       const clean = txt.replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(clean);
+      let parsed;
+      try { parsed = JSON.parse(clean); } catch(e) { throw new Error("La IA no devolvió JSON válido: " + clean.slice(0,200)); }
 
       const nuevo = {
         ...parsed,
