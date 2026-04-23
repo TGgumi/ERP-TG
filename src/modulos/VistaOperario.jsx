@@ -109,22 +109,29 @@ function planificar(ofs,maq){
 }
 
 // ─── MÁQUINAS ─────────────────────────────────────────────────────
+const PLANTAS = ["Vitoria","Esparreguera"];
+const PLANTA_COL = {
+  "Vitoria":      {bg:"#1e3a5f",tx:"#fff",bd:"#3b82f6",light:"#eff6ff",lightTx:"#1d4ed8"},
+  "Esparreguera": {bg:"#14532d",tx:"#fff",bd:"#22c55e",light:"#f0fdf4",lightTx:"#166534"},
+};
 const MAQUINAS_LIST=[
-  {id:"TWIN44",  linea:"TWIN",     tipo:"Recubrimiento", usaHornos:true},
-  {id:"TWIN02",  linea:"TWIN",     tipo:"Recubrimiento", usaHornos:true},
-  {id:"PRE-02",  linea:"TWIN",     tipo:"Pretratamiento",usaHornos:false},
-  {id:"GR-02",   linea:"TWIN",     tipo:"Granallado",    usaHornos:false},
-  {id:"MN-01",   linea:"MN",       tipo:"Recubrimiento", usaHornos:true},
-  {id:"PRE-01",  linea:"MN",       tipo:"Pretratamiento",usaHornos:false},
-  {id:"GR-01",   linea:"MN",       tipo:"Granallado",    usaHornos:false},
-  {id:"MN Bastid",linea:"BASTIDOR",tipo:"Recubrimiento", usaHornos:false},
-  {id:"GR-BAST", linea:"BASTIDOR", tipo:"Granallado",    usaHornos:false},
-  {id:"DE02",    linea:"BASTIDOR", tipo:"Desengrasado",  usaHornos:false},
-  {id:"DC02",    linea:"DESAC.",   tipo:"Desaceitado",   usaHornos:false},
+  {id:"TWIN44",   linea:"TWIN",     tipo:"Recubrimiento", usaHornos:true,  planta:"Vitoria"},
+  {id:"TWIN02",   linea:"TWIN",     tipo:"Recubrimiento", usaHornos:true,  planta:"Vitoria"},
+  {id:"PRE-02",   linea:"TWIN",     tipo:"Pretratamiento",usaHornos:false, planta:"Vitoria"},
+  {id:"GR-02",    linea:"TWIN",     tipo:"Granallado",    usaHornos:false, planta:"Vitoria"},
+  {id:"MN-01",    linea:"MN",       tipo:"Recubrimiento", usaHornos:true,  planta:"Esparreguera"},
+  {id:"PRE-01",   linea:"MN",       tipo:"Pretratamiento",usaHornos:false, planta:"Esparreguera"},
+  {id:"GR-01",    linea:"MN",       tipo:"Granallado",    usaHornos:false, planta:"Esparreguera"},
+  {id:"MN Bastid",linea:"BASTIDOR", tipo:"Recubrimiento", usaHornos:false, planta:"Vitoria"},
+  {id:"GR-BAST",  linea:"BASTIDOR", tipo:"Granallado",    usaHornos:false, planta:"Vitoria"},
+  {id:"DE02",     linea:"BASTIDOR", tipo:"Desengrasado",  usaHornos:false, planta:"Vitoria"},
+  {id:"DB02",     linea:"BASTIDOR", tipo:"Desengrasado",  usaHornos:false, planta:"Vitoria"},
+  {id:"DC02",     linea:"DESAC.",   tipo:"Desaceitado",   usaHornos:false, planta:"Vitoria"},
+  {id:"MALLADO",  linea:"MALLADO",  tipo:"Mallado",       usaHornos:false, planta:"Vitoria"},
 ];
 
 const EC={"Produciendo":{bg:"#166534",bd:"#22c55e",tx:"#fff"},"Espera":{bg:"#1e40af",bd:"#60a5fa",tx:"#fff"},"Avería":{bg:"#991b1b",bd:"#ef4444",tx:"#fff"},"Parada":{bg:"#374151",bd:"#9ca3af",tx:"#fff"},"Ajuste":{bg:"#92400e",bd:"#f59e0b",tx:"#fff"},"Limpieza":{bg:"#5b21b6",bd:"#a78bfa",tx:"#fff"},"Mantenimiento":{bg:"#78350f",bd:"#fbbf24",tx:"#fff"}};
-const LINEA_C={"TWIN":"#185FA5","MN":"#0F6E56","BASTIDOR":"#92400e","DESAC.":"#5b21b6"};
+const LINEA_C={"TWIN":"#185FA5","MN":"#0F6E56","BASTIDOR":"#92400e","DESAC.":"#5b21b6","MALLADO":"#374151"};
 
 // ─── COMPONENTES ──────────────────────────────────────────────────
 function FTag({f}){
@@ -1015,6 +1022,7 @@ export default function VistaOperario(){
   const [pendCtrl,setPendCtrl]=useState(null); // {maqId, of_}
   const [operarios,setOperarios]=useState({}); // {maqId: nombre}
   const [vista,setVista]=useState('maquinas'); // 'maquinas' | 'turnos' | 'buzon'
+  const [planta,setPlanta]=useState(null); // null = sin seleccionar
 
   const planes=useMemo(()=>{
     const r={};
@@ -1092,14 +1100,42 @@ export default function VistaOperario(){
     setNcTurno(p=>[n,...p]);setNcs(p=>[n,...p]);
   }
 
-  const maqInfo=MAQUINAS_LIST.find(m=>m.id===maqActiva)||MAQUINAS_LIST[0];
+  const maqsPlanta = planta ? MAQUINAS_LIST.filter(m=>m.planta===planta) : MAQUINAS_LIST;
+  const maqInfo=maqsPlanta.find(m=>m.id===maqActiva)||maqsPlanta[0]||MAQUINAS_LIST[0];
   const planActual=planes[maqActiva]||[];
   const prod=Object.values(ests).filter(e=>e==="Produciendo").length;
   const avr=Object.values(ests).filter(e=>e==="Avería").length;
 
-  // Agrupar máquinas por línea
+  // Agrupar máquinas por línea (filtradas por planta)
   const LINEAS={};
-  MAQUINAS_LIST.forEach(m=>{if(!LINEAS[m.linea])LINEAS[m.linea]=[];LINEAS[m.linea].push(m);});
+  maqsPlanta.forEach(m=>{if(!LINEAS[m.linea])LINEAS[m.linea]=[];LINEAS[m.linea].push(m);});
+
+  // Pantalla selección de planta
+  if(!planta) return(
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"calc(100vh - 130px)",gap:32,background:"#f8fafc",borderRadius:12,border:"0.5px solid #e2e8f0"}}>
+      <div style={{textAlign:"center"}}>
+        <div style={{fontSize:32,marginBottom:8}}>🏭</div>
+        <div style={{fontSize:22,fontWeight:700,color:"#111827",marginBottom:6}}>Vista Operario</div>
+        <div style={{fontSize:14,color:"#6b7280"}}>Selecciona tu planta para continuar</div>
+      </div>
+      <div style={{display:"flex",gap:20,flexWrap:"wrap",justifyContent:"center"}}>
+        {PLANTAS.map(p=>{
+          const c=PLANTA_COL[p];
+          const nMaq=MAQUINAS_LIST.filter(m=>m.planta===p).length;
+          return(
+            <button key={p} onClick={()=>{setPlanta(p);setMaqActiva(MAQUINAS_LIST.find(m=>m.planta===p)?.id||"TWIN44");}}
+              style={{background:c.bg,color:c.tx,border:`2px solid ${c.bd}`,borderRadius:16,padding:"32px 48px",cursor:"pointer",textAlign:"center",transition:"transform .15s",minWidth:220}}
+              onMouseEnter={e=>e.currentTarget.style.transform="scale(1.04)"}
+              onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"}>
+              <div style={{fontSize:36,marginBottom:10}}>{p==="Vitoria"?"🏙":"🌿"}</div>
+              <div style={{fontSize:20,fontWeight:700,marginBottom:4}}>{p}</div>
+              <div style={{fontSize:12,opacity:.8}}>{nMaq} máquinas</div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return(
     <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 130px)",minHeight:500,gap:0,border:"0.5px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
@@ -1111,6 +1147,16 @@ export default function VistaOperario(){
             {lbl}
           </button>
         ))}
+        <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8,paddingRight:12}}>
+          {planta&&(
+            <span style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:PLANTA_COL[planta].light,color:PLANTA_COL[planta].lightTx,border:`1px solid ${PLANTA_COL[planta].bd}`}}>
+              {planta==="Vitoria"?"🏙":"🌿"} {planta}
+            </span>
+          )}
+          <button onClick={()=>setPlanta(null)} style={{fontSize:10,padding:"3px 10px",borderRadius:20,cursor:"pointer",background:"#f1f5f9",border:"0.5px solid #e2e8f0",color:"#6b7280",fontWeight:600}}>
+            Cambiar planta
+          </button>
+        </div>
       </div>
 
       {vista==="turnos"?<CalendarioTurnos/>:vista==="buzon"?<BuzonMejoras/>:
