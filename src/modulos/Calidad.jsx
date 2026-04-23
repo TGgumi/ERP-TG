@@ -1655,32 +1655,32 @@ function ModalNuevo({ total, onClose, onGuardar }) {
           <option value="">— Selecciona homologación —</option>
           {HOMS.map(h=><option key={h.id} value={h.ref}>{h.ref} — {h.desc}</option>)}
         </select>
-      </Campo>
+      </RT_Campo>
       <RT_R2 c={[
         <RT_Campo label="Cliente">
           <select style={MI} value={f.cli} onChange={ff("cli")}>
             <option value="">— Selecciona —</option>
             {CLIENTES.map(c=><option key={c.id} value={c.id}>{c.n}</option>)}
           </select>
-        </Campo>,
+        </RT_Campo>,
         <RT_Campo label="Máquina">
           <select style={MI} value={f.maq} onChange={ff("maq")}>
             <option value="">— Selecciona —</option>
             {MAQUINAS.map(m=><option key={m.id} value={m.id}>{m.id} — {m.n}</option>)}
           </select>
-        </Campo>,
+        </RT_Campo>,
       ]}/>
       <RT_R2 c={[
         <RT_Campo label="Proceso">
           <select style={MI} value={f.proceso} onChange={ff("proceso")}>
             {PROCESOS.map(p=><option key={p}>{p}</option>)}
           </select>
-        </Campo>,
+        </RT_Campo>,
         <RT_Campo label="Motivo del Retrabajo" required>
           <select style={MI} value={f.motivo} onChange={ff("motivo")}>
             {MOTIVOS.map(m=><option key={m}>{m}</option>)}
           </select>
-        </Campo>,
+        </RT_Campo>,
       ]}/>
 
       <RT_Sep label="Afectación"/>
@@ -1690,7 +1690,7 @@ function ModalNuevo({ total, onClose, onGuardar }) {
       ]}/>
       <RT_Campo label="Descripción del defecto" required>
         <textarea style={{...MI,minHeight:70,resize:"vertical"}} placeholder="Describe el defecto detectado..." value={f.desc} onChange={ff("desc")}/>
-      </Campo>
+      </RT_Campo>
 
       <RT_Sep label="Gestión"/>
       <RT_R2 c={[
@@ -1698,21 +1698,21 @@ function ModalNuevo({ total, onClose, onGuardar }) {
           <select style={MI} value={f.operario} onChange={ff("operario")}>
             {OPERARIOS.map(o=><option key={o}>{o}</option>)}
           </select>
-        </Campo>,
+        </RT_Campo>,
         <RT_Campo label="Responsable Calidad">
           <select style={MI} value={f.resp_calidad} onChange={ff("resp_calidad")}>
             {OPERARIOS.map(o=><option key={o}>{o}</option>)}
           </select>
-        </Campo>,
+        </RT_Campo>,
       ]}/>
       <RT_Campo label="Acción tomada">
         <textarea style={{...MI,minHeight:60,resize:"vertical"}} placeholder="Describe la acción correctiva..." value={f.accion} onChange={ff("accion")}/>
-      </Campo>
+      </RT_Campo>
       <RT_Campo label="Resultado">
         <select style={MI} value={f.resultado} onChange={ff("resultado")}>
           {RESULTADOS.map(r=><option key={r}>{r}</option>)}
         </select>
-      </Campo>
+      </RT_Campo>
 
       <RT_Sep label="Coste estimado"/>
       <RT_R3 c={[
@@ -1726,7 +1726,7 @@ function ModalNuevo({ total, onClose, onGuardar }) {
         <RT_Campo label="NC vinculada"><input style={MI} placeholder="NC-XXXX-XXX (opcional)" value={f.origen_nc} onChange={ff("origen_nc")}/></RT_Campo>,
         <RT_Campo label="Observaciones"><input style={MI} placeholder="..." value={f.obs} onChange={ff("obs")}/></RT_Campo>,
       ]}/>
-    </Modal>
+    </RT_Modal>
   );
 }
 
@@ -1784,14 +1784,14 @@ function ModalDetalle({ rt, onClose, onActualizar }) {
           {/* Acción */}
           <RT_Campo label="Acción tomada">
             <textarea style={{...MI,minHeight:70,resize:"vertical"}} value={accion} onChange={e=>setAccion(e.target.value)}/>
-          </Campo>
+          </RT_Campo>
 
           {/* Resultado */}
           <RT_Campo label="Resultado">
             <select style={MI} value={resultado} onChange={e=>setResultado(e.target.value)}>
               {RESULTADOS.map(r=><option key={r}>{r}</option>)}
             </select>
-          </Campo>
+          </RT_Campo>
 
           {/* Coste */}
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
@@ -1821,7 +1821,7 @@ function ModalDetalle({ rt, onClose, onActualizar }) {
 
           <RT_Campo label="Observaciones adicionales">
             <input style={MI} value={obs} onChange={e=>setObs(e.target.value)}/>
-          </Campo>
+          </RT_Campo>
         </div>
 
         <div style={{padding:"14px 22px",borderTop:"1px solid #f3f4f6",display:"flex",justifyContent:"flex-end",gap:10,background:"#fafafa",flexShrink:0}}>
@@ -2071,3 +2071,5 @@ export default function Calidad(){
       {tab==="retrabajos" && <TabRetrabajos/>}
     </div>
   );
+
+}
