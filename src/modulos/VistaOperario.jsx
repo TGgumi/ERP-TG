@@ -210,8 +210,8 @@ function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,bastidor
           <div style={{marginTop:6,display:"flex",alignItems:"center",gap:6}}>
             <span style={{fontSize:10,fontWeight:600,color:"#374151"}}>🗂 Bastidores:</span>
             <select
-              value={(bastidores&&bastidores[`${o.of}:${maq}`])||""}
-              onChange={e=>onBastidores&&onBastidores(o,maq,e.target.value)}
+              value={(bastidores&&bastidores[o.of])||""}
+              onChange={e=>onBastidores&&onBastidores(o,e.target.value)}
               style={{fontSize:11,fontWeight:700,padding:"2px 6px",borderRadius:5,border:"1px solid #93c5fd",background:"#eff6ff",color:"#1d4ed8",cursor:"pointer",outline:"none"}}>
               <option value="">—</option>
               {Array.from({length:20},(_,i)=>i+1).map(n=>(
@@ -1476,7 +1476,7 @@ export default function VistaOperario(){
           onDeshacer={o=>desconfirmarOF(o,maqActiva)}
           onDeshacerNC={(o,bloq)=>deshacerNC(o,bloq)}
           bastidores={bastidores}
-          onBastidores={(o,maq,val)=>setBastidores(p=>({...p,[`${o.of}:${maq}`]:val}))}
+          onBastidores={(o,val)=>setBastidores(p=>({...p,[o.of]:val}))}
           confirmadas={confirmadas}
           bloqueadas={bloqueadas}
         />
