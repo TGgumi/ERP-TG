@@ -1451,18 +1451,420 @@ function TabCalculadoras(){
 }
 
 
+
+// ─── WORKFLOW BUILDER ─────────────────────────────────────────────
+const WF_MACHINES = {
+  "Esparreguera": {
+    "Pretratamiento": [
+      {id:"PRE-01",label:"PRE-01",color:"#0891b2"},
+    ],
+    "Recubrimiento": [
+      {id:"GR-01", label:"GR-01", color:"#16a34a"},
+      {id:"MN-01", label:"MN-01", color:"#7c3aed", horno:true},
+    ],
+  },
+  "Vitoria": {
+    "Pretratamiento": [
+      {id:"PRE-02", label:"PRE-02", color:"#0891b2"},
+      {id:"DE02",   label:"DE02",   color:"#0891b2"},
+      {id:"DB02",   label:"DB02",   color:"#0891b2"},
+      {id:"DC02",   label:"DC02",   color:"#0891b2"},
+    ],
+    "Granallado": [
+      {id:"GR-02",   label:"GR-02",    color:"#16a34a"},
+      {id:"GR-BAST", label:"GR-BAST",  color:"#16a34a"},
+    ],
+    "Recubrimiento": [
+      {id:"TWIN44",   label:"TWIN44",   color:"#7c3aed", horno:true},
+      {id:"TWIN02",   label:"TWIN02",   color:"#7c3aed", horno:true},
+      {id:"MN Bastid",label:"MN Bastid",color:"#7c3aed", horno:true},
+    ],
+    "Ensamblaje": [
+      {id:"MALLADO", label:"MALLADO", color:"#b45309"},
+    ],
+  },
+  "Comunes": {
+    "Calidad": [
+      {id:"CTR-CALIDAD", label:"Control Calidad", color:"#dc2626"},
+      {id:"NSS",         label:"Ensayo NSS",      color:"#dc2626"},
+    ],
+    "Horno": [
+      {id:"HORNO",   label:"Horno",    color:"#ea580c"},
+      {id:"SECADO",  label:"Secado",   color:"#ea580c"},
+    ],
+    "Logística": [
+      {id:"RECEPCION", label:"Recepción", color:"#374151"},
+      {id:"EMBALAJE",  label:"Embalaje",  color:"#374151"},
+      {id:"ENTREGA",   label:"Entrega",   color:"#374151"},
+    ],
+  },
+};
+
+// Aplanar para buscar por id
+function findMachine(id){
+  for(const planta of Object.values(WF_MACHINES))
+    for(const maquinas of Object.values(planta))
+      for(const m of maquinas) if(m.id===id) return m;
+  return null;
+}
+
+let nodeIdCounter = 1;
+function newNode(machineId, x, y){
+  const m = findMachine(machineId)||{id:machineId,label:machineId,color:"#6b7280"};
+  return { uid: `n${nodeIdCounter++}`, machineId, label:m.label, color:m.color, horno:m.horno||false, x, y };
+}
+
+function WorkflowBuilder(){
+  const [nodes,     setNodes]     = useState([]);
+  const [edges,     setEdges]     = useState([]); // [{from:uid, to:uid}]
+  const [selected,  setSelected]  = useState(null); // uid
+  const [connecting,setConnecting]= useState(null); // uid del origen
+  const [mode,      setMode]      = useState("select"); // select | connect | delete
+  const [drag,      setDrag]      = useState(null); // {uid, offX, offY}
+  const [flows,     setFlows]     = useState([]); // [{name, nodes, edges, tag, planta}]
+  const [flowName,  setFlowName]  = useState("");
+  const [flowTag,   setFlowTag]   = useState("");
+  const [flowPlanta,setFlowPlanta]= useState("Vitoria");
+  const [showSaved, setShowSaved] = useState(false);
+  const canvasRef = React.useRef(null);
+  const W = 900, H = 500;
+
+  // ── Drag nodes ────────────────────────────────────────────────────
+  function onNodeMouseDown(e, uid){
+    if(mode==="delete"){ deleteNode(uid); return; }
+    if(mode==="connect"){
+      if(!connecting){ setConnecting(uid); return; }
+      if(connecting!==uid && !edges.find(e=>e.from===connecting&&e.to===uid)){
+        const fromNode = nodes.find(n=>n.uid===connecting);
+        const toNode   = nodes.find(n=>n.uid===uid);
+        if(fromNode && toNode){
+          setEdges(p=>[...p,{from:connecting,to:uid}]);
+          // Si el nodo de origen tiene horno, añadir nodo horno automáticamente
+          if(fromNode.horno && !nodes.find(n=>n.machineId==="HORNO"&&n.uid.startsWith("auto_"))){
+            const hn = {...newNode("HORNO", toNode.x+160, toNode.y), uid:`auto_${Date.now()}`};
+            setNodes(p=>[...p,hn]);
+            setEdges(p=>[...p,{from:uid,to:hn.uid}]);
+          }
+        }
+      }
+      setConnecting(null); return;
+    }
+    e.stopPropagation();
+    const rect = canvasRef.current.getBoundingClientRect();
+    const node = nodes.find(n=>n.uid===uid);
+    setDrag({uid, offX:e.clientX-rect.left-node.x, offY:e.clientY-rect.top-node.y});
+    setSelected(uid);
+  }
+
+  function onCanvasMouseMove(e){
+    if(!drag) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = Math.max(0, Math.min(W-120, e.clientX-rect.left-drag.offX));
+    const y = Math.max(0, Math.min(H-56,  e.clientY-rect.top-drag.offY));
+    setNodes(p=>p.map(n=>n.uid===drag.uid?{...n,x,y}:n));
+  }
+
+  function onCanvasMouseUp(){ setDrag(null); }
+  function onCanvasClick(){ if(mode!=="connect") setSelected(null); }
+
+  function deleteNode(uid){
+    setNodes(p=>p.filter(n=>n.uid!==uid));
+    setEdges(p=>p.filter(e=>e.from!==uid&&e.to!==uid));
+    if(selected===uid) setSelected(null);
+  }
+
+  function deleteEdge(from,to){
+    setEdges(p=>p.filter(e=>!(e.from===from&&e.to===to)));
+  }
+
+  // Añadir desde panel
+  function addFromPanel(machineId){
+    const existing = nodes.filter(n=>n.machineId===machineId).length;
+    const x = 60 + existing*20 + Math.random()*40;
+    const y = 60 + nodes.length*10 + Math.random()*30;
+    const n = newNode(machineId, Math.min(x,W-130), Math.min(y,H-60));
+    setNodes(p=>[...p,n]);
+  }
+
+  // Auto-layout: disponer en línea horizontal
+  function autoLayout(){
+    if(nodes.length===0) return;
+    // BFS desde nodos sin incoming edges
+    const hasIncoming = new Set(edges.map(e=>e.to));
+    const roots = nodes.filter(n=>!hasIncoming.has(n.uid));
+    const visited = new Set();
+    const queue = roots.map((n,i)=>({uid:n.uid,col:0,row:i}));
+    const positions = {};
+    while(queue.length){
+      const {uid,col,row} = queue.shift();
+      if(visited.has(uid)) continue;
+      visited.add(uid);
+      positions[uid]={x:60+col*180, y:60+row*90};
+      const outgoing = edges.filter(e=>e.from===uid);
+      outgoing.forEach((e,i)=>queue.push({uid:e.to,col:col+1,row:i}));
+    }
+    // Nodos sin posición asignada
+    let extra=0;
+    nodes.forEach(n=>{if(!positions[n.uid]){positions[n.uid]={x:60+extra*180,y:60+Math.floor(extra/4)*90};extra++;}});
+    setNodes(p=>p.map(n=>({...n,...(positions[n.uid]||{})})));
+  }
+
+  // Guardar flujo
+  function saveFlow(){
+    if(!flowName.trim()) return;
+    const flow = {id:Date.now(),name:flowName,planta:flowPlanta,tag:flowTag,nodes:[...nodes],edges:[...edges]};
+    setFlows(p=>[...p.filter(f=>f.name!==flowName),flow]);
+    setFlowName("");
+  }
+
+  function loadFlow(flow){
+    setNodes(flow.nodes.map(n=>({...n}))); // clonar
+    setEdges(flow.edges.map(e=>({...e})));
+    setFlowPlanta(flow.planta);
+    setShowSaved(false);
+  }
+
+  // Flecha SVG con punta
+  function Arrow({from,to}){
+    const fn = nodes.find(n=>n.uid===from);
+    const tn = nodes.find(n=>n.uid===to);
+    if(!fn||!tn) return null;
+    const NW=120,NH=48;
+    const x1=fn.x+NW, y1=fn.y+NH/2;
+    const x2=tn.x,    y2=tn.y+NH/2;
+    const cx1=x1+50,  cy1=y1;
+    const cx2=x2-50,  cy2=y2;
+    const angle = Math.atan2(y2-cy2, x2-cx2)*180/Math.PI;
+    // Punto donde empieza la flecha (un poco antes del target)
+    const d=`M${x1},${y1} C${cx1},${cy1} ${cx2},${cy2} ${x2},${y2}`;
+    return(
+      <g style={{cursor:"pointer"}} onClick={()=>deleteEdge(from,to)}>
+        <path d={d} fill="none" stroke="#6b7280" strokeWidth={2} markerEnd="url(#arrow)" opacity={0.8}/>
+        {/* Hit area para eliminar */}
+        <path d={d} fill="none" stroke="transparent" strokeWidth={12}/>
+      </g>
+    );
+  }
+
+  const cursorMap = {select:"default",connect:"crosshair",delete:"not-allowed"};
+  const nodeW=120, nodeH=48;
+
+  return(
+    <div style={{display:"flex",gap:12,height:"calc(100vh - 220px)",minHeight:540}}>
+
+      {/* ── Panel lateral izquierdo ── */}
+      <div style={{width:220,flexShrink:0,display:"flex",flexDirection:"column",gap:8,overflowY:"auto"}}>
+        {/* Selector planta */}
+        <div style={{fontSize:11,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:".05em"}}>Planta</div>
+        <div style={{display:"flex",gap:4}}>
+          {["Esparreguera","Vitoria"].map(p=>(
+            <button key={p} onClick={()=>setFlowPlanta(p)}
+              style={{flex:1,padding:"4px 6px",fontSize:10,fontWeight:flowPlanta===p?700:400,borderRadius:5,cursor:"pointer",
+                background:flowPlanta===p?"#1e3a5f":"#f1f5f9",color:flowPlanta===p?"#fff":"#374151",border:"none"}}>
+              {p==="Vitoria"?"🏙":"🌿"} {p}
+            </button>
+          ))}
+        </div>
+
+        {/* Máquinas disponibles */}
+        {[flowPlanta,"Comunes"].map(planta=>(
+          <div key={planta}>
+            {Object.entries(WF_MACHINES[planta]||{}).map(([seccion,maquinas])=>(
+              <div key={seccion} style={{marginBottom:6}}>
+                <div style={{fontSize:9,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:".06em",marginBottom:4,paddingLeft:4}}>{seccion}</div>
+                <div style={{display:"flex",flexDirection:"column",gap:3}}>
+                  {maquinas.map(m=>(
+                    <button key={m.id} onClick={()=>addFromPanel(m.id)}
+                      style={{padding:"5px 8px",borderRadius:6,cursor:"pointer",textAlign:"left",fontSize:11,fontWeight:600,
+                        background:m.color+"22",color:m.color,border:`1px solid ${m.color}44`,
+                        display:"flex",alignItems:"center",gap:5}}>
+                      <span style={{width:8,height:8,borderRadius:"50%",background:m.color,flexShrink:0,display:"inline-block"}}/>
+                      {m.label}
+                      {m.horno&&<span style={{fontSize:9,marginLeft:"auto",opacity:.7}}>🔥</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+
+        {/* Guardar flujo */}
+        <div style={{borderTop:"1px solid #e2e8f0",paddingTop:8,display:"flex",flexDirection:"column",gap:6}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#374151"}}>💾 Guardar flujo</div>
+          <input value={flowName} onChange={e=>setFlowName(e.target.value)} placeholder="Nombre del flujo"
+            style={{border:"1px solid #e2e8f0",borderRadius:5,padding:"4px 7px",fontSize:11,outline:"none"}}/>
+          <input value={flowTag} onChange={e=>setFlowTag(e.target.value)} placeholder="Referencia / Cliente / Familia"
+            style={{border:"1px solid #e2e8f0",borderRadius:5,padding:"4px 7px",fontSize:11,outline:"none"}}/>
+          <button onClick={saveFlow} disabled={!flowName.trim()}
+            style={{background:flowName.trim()?"#2563eb":"#94a3b8",color:"#fff",border:"none",borderRadius:5,padding:"5px",fontSize:11,fontWeight:700,cursor:flowName.trim()?"pointer":"not-allowed"}}>
+            💾 Guardar
+          </button>
+          {flows.length>0&&(
+            <button onClick={()=>setShowSaved(s=>!s)}
+              style={{background:"#f1f5f9",border:"0.5px solid #e2e8f0",color:"#374151",borderRadius:5,padding:"4px",fontSize:11,cursor:"pointer"}}>
+              📂 Flujos guardados ({flows.length})
+            </button>
+          )}
+          {showSaved&&flows.map(f=>(
+            <div key={f.id} style={{background:"#f8fafc",border:"0.5px solid #e2e8f0",borderRadius:6,padding:"6px 8px",cursor:"pointer"}}
+              onClick={()=>loadFlow(f)}>
+              <div style={{fontSize:11,fontWeight:700,color:"#1d4ed8"}}>{f.name}</div>
+              <div style={{fontSize:9,color:"#6b7280"}}>{f.planta}{f.tag&&` · ${f.tag}`}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Canvas ── */}
+      <div style={{flex:1,display:"flex",flexDirection:"column",gap:8}}>
+
+        {/* Toolbar */}
+        <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+          {[
+            ["select","↖ Mover","#f1f5f9","#374151"],
+            ["connect","→ Conectar","#dbeafe","#1d4ed8"],
+            ["delete","✕ Eliminar","#fee2e2","#b91c1c"],
+          ].map(([m,l,bg,tx])=>(
+            <button key={m} onClick={()=>{setMode(m);setConnecting(null);}}
+              style={{padding:"5px 12px",borderRadius:6,fontSize:11,fontWeight:mode===m?700:500,cursor:"pointer",
+                background:mode===m?bg:"#f8fafc",color:mode===m?tx:"#6b7280",
+                border:mode===m?`1.5px solid ${tx}`:"1px solid #e2e8f0"}}>
+              {l}
+            </button>
+          ))}
+          <div style={{width:1,height:20,background:"#e2e8f0",margin:"0 4px"}}/>
+          <button onClick={autoLayout}
+            style={{padding:"5px 12px",borderRadius:6,fontSize:11,fontWeight:500,cursor:"pointer",background:"#f1f5f9",color:"#374151",border:"1px solid #e2e8f0"}}>
+            ⚡ Auto-layout
+          </button>
+          <button onClick={()=>{setNodes([]);setEdges([]);setSelected(null);}}
+            style={{padding:"5px 12px",borderRadius:6,fontSize:11,fontWeight:500,cursor:"pointer",background:"#f1f5f9",color:"#374151",border:"1px solid #e2e8f0"}}>
+            🗑 Limpiar
+          </button>
+          {mode==="connect"&&connecting&&(
+            <span style={{fontSize:11,color:"#1d4ed8",fontWeight:600,background:"#eff6ff",padding:"4px 10px",borderRadius:5,border:"1px solid #93c5fd"}}>
+              Conectar desde: <strong>{nodes.find(n=>n.uid===connecting)?.label}</strong> → clic en destino
+            </span>
+          )}
+          {mode==="delete"&&(
+            <span style={{fontSize:11,color:"#b91c1c",fontWeight:600,background:"#fef2f2",padding:"4px 10px",borderRadius:5,border:"1px solid #fca5a5"}}>
+              Clic en nodo o flecha para eliminar
+            </span>
+          )}
+        </div>
+
+        {/* Canvas SVG+HTML */}
+        <div ref={canvasRef}
+          style={{position:"relative",background:"#f9fafb",border:"1.5px solid #e2e8f0",borderRadius:10,
+            width:"100%",height:"100%",overflow:"hidden",cursor:cursorMap[mode]}}
+          onMouseMove={onCanvasMouseMove} onMouseUp={onCanvasMouseUp} onClick={onCanvasClick}>
+
+          {/* Grid de puntos */}
+          <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none"}}>
+            <defs>
+              <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+                <circle cx="12" cy="12" r="0.8" fill="#d1d5db"/>
+              </pattern>
+              <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L8,3 z" fill="#6b7280"/>
+              </marker>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid)"/>
+          </svg>
+
+          {/* Flechas (SVG overlay) */}
+          <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none",zIndex:1}}
+            onMouseMove={onCanvasMouseMove}>
+            <defs>
+              <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L8,3 z" fill="#6b7280"/>
+              </marker>
+            </defs>
+            <g style={{pointerEvents:"all"}}>
+              {edges.map((e,i)=><Arrow key={i} from={e.from} to={e.to}/>)}
+            </g>
+          </svg>
+
+          {/* Nodos */}
+          {nodes.map(n=>{
+            const isSel = selected===n.uid;
+            const isConnOrig = connecting===n.uid;
+            return(
+              <div key={n.uid}
+                style={{position:"absolute",left:n.x,top:n.y,width:nodeW,zIndex:2,
+                  userSelect:"none",cursor:mode==="select"?"grab":mode==="connect"?"crosshair":"not-allowed"}}
+                onMouseDown={e=>onNodeMouseDown(e,n.uid)}>
+                {/* Cuerpo nodo */}
+                <div style={{
+                  background:n.color,color:"#fff",borderRadius:8,
+                  padding:"6px 10px",height:nodeH,display:"flex",alignItems:"center",justifyContent:"center",
+                  fontWeight:700,fontSize:11,textAlign:"center",
+                  boxShadow:isSel?"0 0 0 3px #fff, 0 0 0 5px "+n.color:isConnOrig?"0 0 0 3px #fff, 0 0 0 5px #2563eb":"0 2px 6px rgba(0,0,0,.18)",
+                  border:isConnOrig?"2px solid #2563eb":"2px solid transparent",
+                  transition:"box-shadow .15s"}}>
+                  <span>{n.label}</span>
+                  {n.horno&&<span style={{fontSize:9,marginLeft:4,opacity:.8}}>🔥</span>}
+                </div>
+                {/* Sub-nodo horno si tiene horno */}
+                {n.horno&&(
+                  <div style={{background:"#ea580c",borderRadius:"0 0 6px 6px",padding:"2px 6px",fontSize:9,color:"#fff",textAlign:"center",opacity:.85,marginTop:1}}>
+                    🔥 Horno
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Placeholder vacío */}
+          {nodes.length===0&&(
+            <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
+              <div style={{fontSize:32,marginBottom:8,opacity:.3}}>⬡</div>
+              <div style={{fontSize:14,color:"#9ca3af",fontWeight:600}}>Añade máquinas desde el panel izquierdo</div>
+              <div style={{fontSize:11,color:"#cbd5e1",marginTop:4}}>Luego usa → Conectar para unirlas con flechas</div>
+            </div>
+          )}
+        </div>
+
+        {/* Leyenda */}
+        <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+          {[["#0891b2","Pretratamiento"],["#16a34a","Granallado/Recubrimiento"],["#7c3aed","Recubrimiento + 🔥"],["#ea580c","Horno"],["#b45309","Ensamblaje"],["#dc2626","Calidad"],["#374151","Logística"]].map(([c,l])=>(
+            <span key={l} style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:"#6b7280"}}>
+              <span style={{width:10,height:10,borderRadius:2,background:c,display:"inline-block"}}/>
+              {l}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TabFlujos(){
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:12}}>
+      <div>
+        <div style={{fontSize:16,fontWeight:700,color:"#111827"}}>🔗 Workflow Builder — Flujos de proceso</div>
+        <div style={{fontSize:12,color:"#6b7280",marginTop:2}}>Define flujos visuales de proceso arrastrando máquinas y conectándolas con flechas. Guarda y carga flujos habituales.</div>
+      </div>
+      <WorkflowBuilder/>
+    </div>
+  );
+}
+
 export default function OficinaTecnica(){
   const [tab,setTab]   = useState("fichas");
   const [fichas,setFichas] = useState(FICHAS_INIT);
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
-      <Tabs items={[["fichas","Fichas técnicas"],["recetas","Recetas máquina"],["rutas","Rutas proceso"],["ofertas","Ofertas"],["calc","🧮 Calculadoras"],["ia","✦ Recomendador IA"]]} cur={tab} onChange={setTab}/>
+      <Tabs items={[["fichas","Fichas técnicas"],["recetas","Recetas máquina"],["rutas","Rutas proceso"],["ofertas","Ofertas"],["calc","🧮 Calculadoras"],["flujos","🔗 Flujos"],["ia","✦ Recomendador IA"]]} cur={tab} onChange={setTab}/>
       {tab==="fichas"  && <TabFichas/>}
       {tab==="recetas" && <TabRecetas fichas={fichas}/>}
       {tab==="rutas"   && <TabRutas fichas={fichas}/>}
       {tab==="ofertas" && <TabOfertas/>}
       {tab==="calc"    && <TabCalculadoras/>}
+      {tab==="flujos"   && <TabFlujos/>}
       {tab==="ia"      && <TabRecomendador/>}
     </div>
   );
