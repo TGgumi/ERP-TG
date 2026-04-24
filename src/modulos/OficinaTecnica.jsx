@@ -1,5 +1,5 @@
 // src/modulos/OficinaTecnica.jsx
-import { useState, useContext } from "react";
+import React, { useState, useContext } from "react";
 import { ERPContext } from "../ERP";
 import { CLIENTES, MAQUINAS, cn } from "../datos";
 import { Tabs, Bdg, Card, Tbl, Al, KRow } from "../ui";
@@ -947,9 +947,33 @@ Sin texto adicional, sin markdown.`;
 
 // ─── CALCULADORA DE COSTOS ────────────────────────────────────────
 const MAQUINAS_CALC = {
-  Esparreguera:["DES-01","GR-1","TWIN44","TWIN02","PRE-B","GR-B","MN-B","DC-02","Enmallado"],
-  Vitoria:     ["DES-01","GR-1","TWIN44","TWIN02","PRE-B","GR-B","MN-B","DC-02","Enmallado"],
+  Esparreguera: {
+    "Procesos dinámicos": [
+      {id:"PRE-01",label:"PRE-01",reales:60},
+      {id:"GR-01", label:"GR-01", reales:""},
+      {id:"MN-01", label:"MN-01", reales:25, horno:true},
+    ],
+  },
+  Vitoria: {
+    "Procesos dinámicos": [
+      {id:"PRE-02", label:"PRE-02",  reales:60},
+      {id:"GR-02",  label:"GR-02",   reales:""},
+      {id:"TWIN02", label:"TWIN02",  reales:45, horno:true},
+      {id:"TWIN44", label:"TWIN44",  reales:40, horno:true},
+    ],
+    "Procesos estáticos": [
+      {id:"DE02",    label:"DE02",     reales:""},
+      {id:"DB02",    label:"DB02",     reales:""},
+      {id:"GR-BAST", label:"GR-BAST", reales:""},
+      {id:"MN Bastid",label:"MN Bastid",reales:250, horno:true},
+    ],
+    "Ensamblaje": [
+      {id:"MALLADO", label:"MALLADO", reales:""},
+    ],
+  },
 };
+// Aplanar la lista de máquinas para una planta
+function maqList(planta){ return Object.values(MAQUINAS_CALC[planta]||{}).flat(); }
 const PRETRAT_DEF = ["Desengrasado","Fosfatado","Granallado"];
 const BASECOAT_DEF = ["D. Protekt KL100","D. Protekt KL120"];
 const TOPCOAT_DEF = [
@@ -959,9 +983,16 @@ const TOPCOAT_DEF = [
   "D. Seal 711 Plata","D. Seal 715 Plata","D. TOP 502 GZ","Delta Lube 10 Verde",
   "D. Protekt VL-440","Aceitado MKR","Aceitado Non Rust 99 DW",
 ];
+
+const HORNO_PARAMS = {
+  "TWIN44":   {temp:"200°C",tiempo:"20 min",descripcion:"Polimerización Basecoat + Topcoat"},
+  "TWIN02":   {temp:"200°C",tiempo:"20 min",descripcion:"Polimerización Basecoat + Topcoat"},
+  "MN-01":    {temp:"180°C",tiempo:"15 min",descripcion:"Polimerización/Secado"},
+  "MN Bastid":{temp:"180°C",tiempo:"15 min",descripcion:"Polimerización/Secado bastidor"},
+};
 const LOTES_CESTA  = ["0 - 79 (PM)","80 - 249","250 - 999","1000 - x"];
 const LOTES_BASTID = ["0 - 50 (PM)","50 - 99","100 - 699","700 - x"];
-const REALES_DEF   = {"DES-01":60,"TWIN02":45,"MN-B":250};
+const REALES_DEF   = {"PRE-01":60,"PRE-02":60,"TWIN02":45,"TWIN44":40,"MN Bastid":250,"MN-01":25};
 
 const thG  = {border:"1px solid #d1d5db",padding:"3px 7px",fontSize:11,background:"#d9d9d9",fontWeight:700};
 const thY  = {border:"1px solid #d1d5db",padding:"3px 7px",fontSize:11,background:"#fff2cc",fontWeight:400};
@@ -1041,6 +1072,7 @@ function CalculadoraForm({ planta, familias }){
   const [largo,setLargo]   = useState("");
   const [familia,setFamilia] = useState("");
   const [reales,setReales] = useState({...REALES_DEF});
+  const maquinas = maqList(planta);
 
   // Pretratamiento
   const [pretratBase]  = useState(PRETRAT_DEF);
@@ -1118,14 +1150,15 @@ function CalculadoraForm({ planta, familias }){
     const proceso = [...pretratActivo,...basecoatActivo,...topcoatActivo].join(" + ");
 
     const realesMap = {};
-    MAQUINAS_CALC[planta].forEach(m=>{if(reales[m]!=null&&reales[m]!=="")realesMap[m]=reales[m];});
+    maqList(planta).forEach(m=>{if(reales[m.id]!=null&&reales[m.id]!=="")realesMap[m.label]=reales[m.id];});
 
     const prompt = `Calculadora Torres Gumà planta ${planta}.
 Peso: ${peso}g | Dim: ${ancho||"?"}x${alto||"?"}x${largo||"?"}mm | Familia: ${familia||"?"} | Proceso: ${proceso||"sin definir"}
 Kg reales/cesta: ${JSON.stringify(realesMap)}
 
+Planta {planta} con secciones: {JSON.stringify(Object.fromEntries(Object.entries(MAQUINAS_CALC[planta]||{}).map(([s,ms])=>[s,ms.map(m=>m.label)]))}).
 Calcula como el Excel Torres Gumà. Responde SOLO JSON:
-{"superficie":"- cm²","peso_kg":"0.0000","volumen":"0.0000","kg_sugeridos":{"DES-01":0,"GR-1":0,"TWIN44":0,"TWIN02":0,"PRE-B":0,"GR-B":0,"MN-B":0,"DC-02":0,"Enmallado":0},"cesta":[{"lote":"0 - 79 (PM)","c1":0,"c2":0,"c3":0,"c4":0},{"lote":"80 - 249","c1":0,"c2":0,"c3":0,"c4":0},{"lote":"250 - 999","c1":0,"c2":0,"c3":0,"c4":0},{"lote":"1000 - x","c1":0,"c2":0,"c3":0,"c4":0}],"bastidor":[{"lote":"0 - 50 (PM)","c1":0,"c2":0,"c3":0},{"lote":"50 - 99","c1":0,"c2":0,"c3":0},{"lote":"100 - 699","c1":0,"c2":0,"c3":0},{"lote":"700 - x","c1":0,"c2":0,"c3":0}]}`;
+{"superficie":"- cm²","peso_kg":"0.0000","volumen":"0.0000","kg_sugeridos":{"PRE-01":0,"GR-01":0,"MN-01":0,"PRE-02":0,"GR-02":0,"TWIN02":0,"TWIN44":0,"DE02":0,"DB02":0,"GR-BAST":0,"MN Bastid":0,"MALLADO":0},"cesta":[{"lote":"0 - 79 (PM)","c1":0,"c2":0,"c3":0,"c4":0},{"lote":"80 - 249","c1":0,"c2":0,"c3":0,"c4":0},{"lote":"250 - 999","c1":0,"c2":0,"c3":0,"c4":0},{"lote":"1000 - x","c1":0,"c2":0,"c3":0,"c4":0}],"bastidor":[{"lote":"0 - 50 (PM)","c1":0,"c2":0,"c3":0},{"lote":"50 - 99","c1":0,"c2":0,"c3":0},{"lote":"100 - 699","c1":0,"c2":0,"c3":0},{"lote":"700 - x","c1":0,"c2":0,"c3":0}]}`;
 
     try{
       const resp = await fetch("https://api.anthropic.com/v1/messages",{
@@ -1291,40 +1324,44 @@ Calcula como el Excel Torres Gumà. Responde SOLO JSON:
       {/* ── COLUMNA DERECHA — RESULTADOS ── */}
       <div style={{flex:1,minWidth:380,display:"flex",flexDirection:"column",gap:10}}>
 
-        {/* Superficie / Peso / Volumen */}
-        <table style={{borderCollapse:"collapse",fontSize:11}}>
-          <tbody>
-            <tr>
-              <td style={{...thG,minWidth:180}}>Superficie aproximada calculada</td>
-              <td style={{...thG,minWidth:110,textAlign:"center"}}>Peso_pieza_kg</td>
-              <td style={{...thG,minWidth:110,textAlign:"center"}}>Volumen cm^3</td>
-            </tr>
-            <tr>
-              <td style={{...tdC}}>{superficie}</td>
-              <td style={{...tdC}}>{pesoPiezaKg}</td>
-              <td style={{...tdC}}>{volumen}</td>
-            </tr>
-          </tbody>
-        </table>
 
-        {/* KG por ciclo */}
-        <table style={{borderCollapse:"collapse",fontSize:11}}>
+
+        {/* KG por ciclo — por secciones */}
+        <table style={{borderCollapse:"collapse",fontSize:11,width:"100%"}}>
           <thead>
             <tr>
-              <td style={{...thG,minWidth:200}}>KG por ciclo</td>
-              <td style={{...thG,textAlign:"center",minWidth:90}}>Sugeridos</td>
-              <td style={{...thG,textAlign:"center",minWidth:90}}>Reales</td>
+              <td style={{...thG,minWidth:180}}>KG por ciclo</td>
+              <td style={{...thG,textAlign:"center",minWidth:80}}>Sugeridos</td>
+              <td style={{...thG,textAlign:"center",minWidth:80}}>Reales</td>
             </tr>
           </thead>
           <tbody>
-            {MAQUINAS_CALC[planta].map(m=>(
-              <tr key={m}>
-                <td style={thY}>{m}</td>
-                <td style={tdC}>{kgSug[m]!=null?fmt4(kgSug[m]):""}</td>
-                <td style={tdGr}>
-                  <input value={reales[m]??""} onChange={e=>setReales(p=>({...p,[m]:e.target.value}))} style={{...INP,background:"transparent"}}/>
-                </td>
-              </tr>
+            {Object.entries(MAQUINAS_CALC[planta]||{}).map(([seccion,maquinas])=>(
+              <>
+                <tr key={seccion}>
+                  <td colSpan={3} style={{background:"#1e3a5f",color:"#fff",fontWeight:700,fontSize:10,padding:"3px 8px",textTransform:"uppercase",letterSpacing:".06em"}}>
+                    {seccion}
+                  </td>
+                </tr>
+                {maquinas.map(m=>(
+                  <React.Fragment key={m.id}>
+                    <tr>
+                      <td style={thY}>{m.label}</td>
+                      <td style={tdC}>{kgSug[m.label]!=null?fmt4(kgSug[m.label]):""}</td>
+                      <td style={tdGr}>
+                        <input value={reales[m.id]??m.reales??""} onChange={e=>setReales(p=>({...p,[m.id]:e.target.value}))} style={{...INP,background:"transparent"}}/>
+                      </td>
+                    </tr>
+                    {m.horno&&(
+                      <tr style={{background:"#fff7ed"}}>
+                        <td colSpan={3} style={{padding:"2px 8px 2px 20px",fontSize:10,color:"#c2410c",fontStyle:"italic",border:"1px solid #fed7aa"}}>
+                          🔥 Horno: {HORNO_PARAMS[m.id]?.temp||"—"} · {HORNO_PARAMS[m.id]?.tiempo||"—"} — {HORNO_PARAMS[m.id]?.descripcion||"Polimerización/Secado"}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
+              </>
             ))}
           </tbody>
         </table>
