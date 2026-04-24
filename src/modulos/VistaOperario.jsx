@@ -207,17 +207,33 @@ function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,bastidor
         <div style={{fontSize:10,color:s.tx,opacity:.55,marginTop:1}}>ref: {o.ref}</div>
         {(()=>{const fot=(fichas||[]).find(f=>f.ref_cli===o.ref||f.desc===o.ref)?.foto;return fot?<img src={fot} alt={o.ref} style={{marginTop:5,width:48,height:48,objectFit:"cover",borderRadius:6,border:"1px solid #e2e8f0"}}/>:null;})()}
         {["DB02","GR-BAST","MN Bastid"].includes(maq)&&(
-          <div style={{marginTop:6,display:"flex",alignItems:"center",gap:6}}>
-            <span style={{fontSize:10,fontWeight:600,color:"#374151"}}>🗂 Bastidores:</span>
-            <select
-              value={(bastidores&&bastidores[o.of])||""}
-              onChange={e=>onBastidores&&onBastidores(o,e.target.value)}
-              style={{fontSize:11,fontWeight:700,padding:"2px 6px",borderRadius:5,border:"1px solid #93c5fd",background:"#eff6ff",color:"#1d4ed8",cursor:"pointer",outline:"none"}}>
-              <option value="">—</option>
-              {Array.from({length:20},(_,i)=>i+1).map(n=>(
-                <option key={n} value={String(n)}>{n}</option>
-              ))}
-            </select>
+          <div style={{marginTop:6,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",background:"#f8fafc",borderRadius:7,padding:"5px 8px",border:"0.5px solid #e2e8f0"}}>
+            <div style={{display:"flex",alignItems:"center",gap:5}}>
+              <span style={{fontSize:10,fontWeight:600,color:"#374151"}}>🗂 Bastidor:</span>
+              <select
+                value={(bastidores&&bastidores[o.of]?.num)||""}
+                onChange={e=>onBastidores&&onBastidores(o,{...(bastidores?.[o.of]||{}),num:e.target.value})}
+                style={{fontSize:11,fontWeight:700,padding:"2px 6px",borderRadius:5,border:"1px solid #93c5fd",background:"#eff6ff",color:"#1d4ed8",cursor:"pointer",outline:"none"}}>
+                <option value="">—</option>
+                {Array.from({length:30},(_,i)=>i+1).map(n=>(
+                  <option key={n} value={String(n)}>{n}</option>
+                ))}
+              </select>
+            </div>
+            {maq==="MN Bastid"&&(
+              <div style={{display:"flex",alignItems:"center",gap:5}}>
+                <span style={{fontSize:10,fontWeight:600,color:"#374151"}}>📐 Capa:</span>
+                <select
+                  value={(bastidores&&bastidores[o.of]?.capa)||""}
+                  onChange={e=>onBastidores&&onBastidores(o,{...(bastidores?.[o.of]||{}),capa:e.target.value})}
+                  style={{fontSize:11,fontWeight:700,padding:"2px 6px",borderRadius:5,border:"1px solid #86efac",background:"#f0fdf4",color:"#166534",cursor:"pointer",outline:"none"}}>
+                  <option value="">—</option>
+                  {Array.from({length:10},(_,i)=>i+1).map(n=>(
+                    <option key={n} value={String(n)}>{n}ª capa</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         )}
         {o.nPed&&o.cli!=null&&(
@@ -1476,7 +1492,7 @@ export default function VistaOperario(){
           onDeshacer={o=>desconfirmarOF(o,maqActiva)}
           onDeshacerNC={(o,bloq)=>deshacerNC(o,bloq)}
           bastidores={bastidores}
-          onBastidores={(o,val)=>setBastidores(p=>({...p,[o.of]:val}))}
+          onBastidores={(o,val)=>setBastidores(p=>({...p,[o.of]:{...(p[o.of]||{}),...(typeof val==="object"?val:{num:val})}}))}
           confirmadas={confirmadas}
           bloqueadas={bloqueadas}
         />
