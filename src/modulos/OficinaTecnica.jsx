@@ -946,163 +946,186 @@ Sin texto adicional, sin markdown.`;
 
 
 // ─── CALCULADORA DE COSTOS ────────────────────────────────────────
-const RECUBRIMIENTOS = [
-  {id:"kl100_1",label:"1ª KL100"},
-  {id:"kl100_2",label:"2ª KL100"},
-  {id:"kl100_3",label:"3ª KL100"},
-  {id:"kl100_4",label:"4ª KL100"},
-  {id:"kl120_1",label:"1ª KL120"},
-  {id:"kl120_2",label:"2ª KL120"},
-  {id:"kl120_3",label:"3ª KL120"},
-  {id:"kl120_4",label:"4ª KL120"},
-  {id:"negro_1",label:"1ª NEGRO GZ"},
-  {id:"negro_2",label:"2ª NEGRO GZ"},
-  {id:"negro_3",label:"3ª NEGRO GZ"},
-  {id:"plata_1",label:"1ª PLATA"},
-  {id:"plata_2",label:"2ª PLATA"},
-  {id:"blanc_1",label:"1ª BLANC"},
-  {id:"blanc_2",label:"2ª BLANC"},
-  {id:"groc_1",label:"1ª GROC"},
-  {id:"groc_2",label:"2ª GROC"},
-  {id:"vh",    label:"VH"},
-  {id:"anticorit",label:"Anticorit MKR"},
-];
-
-const FAMILIAS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".slice(0,20).split("").map(l=>l);
-
-const PLANTA_INFO = {
-  Esparreguera: {
-    desc:"Calculadora costos Esparreguera V13",
-    color:"#14532d", light:"#f0fdf4", bd:"#86efac",
-    maquinas:["DES-01","GR-1","RO5-6/TWIN44","MN01/TWIN02","PRE-B","GR-B","MN-B 120 espais"],
-    recubriemntosExtra:[],
-  },
-  Vitoria: {
-    desc:"Calculadora costos Vitoria V14",
-    color:"#1e3a5f", light:"#eff6ff", bd:"#93c5fd",
-    maquinas:["DES-01","GR-1","TWIN44","TWIN02","PRE-B","GR-B","MN-B","DC-02","Enmallado"],
-    recubrimientosExtra:["anticorit"],
-  },
+const MAQUINAS_CALC = {
+  Esparreguera:["DES-01","GR-1","TWIN44","TWIN02","PRE-B","GR-B","MN-B","DC-02","Enmallado"],
+  Vitoria:     ["DES-01","GR-1","TWIN44","TWIN02","PRE-B","GR-B","MN-B","DC-02","Enmallado"],
 };
-
-// ─── CALCULADORA DE COSTOS ────────────────────────────────────────
-const MAQUINAS_ESP = [
-  {id:"des01",   label:"DES-01",                      reales:60,  bastidor:false},
-  {id:"gr1",     label:"GR-1",                        reales:"",  bastidor:false},
-  {id:"twin44",  label:"TWIN44",                      reales:"",  bastidor:false},
-  {id:"twin02",  label:"TWIN02",                      reales:45,  bastidor:false},
-  {id:"preb",    label:"PRE-B indicar nº forats bast→",reales:"", bastidor:true},
-  {id:"grb",     label:"GR-B indicar nº forats bast→", reales:"", bastidor:true},
-  {id:"mnb",     label:"MN-B indicar nº forats bast→",reales:250, bastidor:true},
-  {id:"dc02",    label:"DC-02",                       reales:"",  bastidor:false},
-  {id:"enmallado",label:"Enmallado",                  reales:"",  bastidor:false},
+const PRETRAT_DEF = ["Desengrasado","Fosfatado","Granallado"];
+const BASECOAT_DEF = ["D. Protekt KL100","D. Protekt KL120"];
+const TOPCOAT_DEF = [
+  "D. Seal Negro GZ","D. Seal Negro","D. Seal Plata GZ","D. Seal Plata",
+  "D. Protekt VH 301","D. Protekt VH 321","D. Protekt VH 315","D. Protekt VH 302 GZ",
+  "D. Seal Amarillo","D. Seal Blanco","D. Seal 711 Negro","D. Seal 715 Negro",
+  "D. Seal 711 Plata","D. Seal 715 Plata","D. TOP 502 GZ","Delta Lube 10 Verde",
+  "D. Protekt VL-440","Aceitado MKR","Aceitado Non Rust 99 DW",
 ];
-const MAQUINAS_VIT = [
-  {id:"des01",   label:"DES-01",                      reales:60,  bastidor:false},
-  {id:"gr1",     label:"GR-1",                        reales:"",  bastidor:false},
-  {id:"twin44",  label:"TWIN44",                      reales:"",  bastidor:false},
-  {id:"twin02",  label:"TWIN02",                      reales:45,  bastidor:false},
-  {id:"preb",    label:"PRE-B indicar nº forats bast→",reales:"", bastidor:true},
-  {id:"grb",     label:"GR-B indicar nº forats bast→", reales:"", bastidor:true},
-  {id:"mnb",     label:"MN-B indicar nº forats bast→",reales:250, bastidor:true},
-  {id:"dc02",    label:"DC-02",                       reales:"",  bastidor:false},
-  {id:"enmallado",label:"Enmallado",                  reales:"",  bastidor:false},
-];
-const RECS_LIST = [
-  {id:"kl100_1",label:"Primera KL100"},{id:"kl100_2",label:"Segona KL100"},
-  {id:"kl100_3",label:"Tercera KL100"},{id:"kl100_4",label:"Quarta KL100"},
-  {id:"kl120_1",label:"Primera KL120"},{id:"kl120_2",label:"Segona KL120"},
-  {id:"kl120_3",label:"Tercera KL120"},{id:"kl120_4",label:"Quarta KL120"},
-  {id:"negro_1",label:"Primera NEGRO GZ"},{id:"negro_2",label:"Segona NEGRO GZ"},{id:"negro_3",label:"Tercera NEGRO GZ"},
-  {id:"plata_1",label:"Primera PLATA"},{id:"plata_2",label:"Segona PLATA"},
-  {id:"blanc_1",label:"Primera BLANC"},{id:"blanc_2",label:"Segona BLANC"},
-  {id:"groc_1",label:"Primera GROC"},{id:"groc_2",label:"Segona GROC"},
-  {id:"vh",label:"VH"},{id:"anticorit",label:"Anticorit MKR"},
-];
-const LOTES_CESTA   = ["0 - 79 (PM)","80 - 249","250 - 999","1000 - x"];
-const LOTES_BASTID  = ["0 - 50 (PM)","50 - 99","100 - 699","700 - x"];
+const LOTES_CESTA  = ["0 - 79 (PM)","80 - 249","250 - 999","1000 - x"];
+const LOTES_BASTID = ["0 - 50 (PM)","50 - 99","100 - 699","700 - x"];
+const REALES_DEF   = {"DES-01":60,"TWIN02":45,"MN-B":250};
 
-const CELL = {border:"1px solid #d1d5db",padding:"3px 6px",fontSize:11,textAlign:"center"};
-const CELL_HDR = {...CELL,background:"#e5e7eb",fontWeight:700,textAlign:"left"};
-const CELL_GRN = {...CELL,background:"#d1fae5"};
-const INP = {width:"100%",border:"none",background:"transparent",fontSize:11,textAlign:"center",outline:"none",padding:0};
+const thG  = {border:"1px solid #d1d5db",padding:"3px 7px",fontSize:11,background:"#d9d9d9",fontWeight:700};
+const thY  = {border:"1px solid #d1d5db",padding:"3px 7px",fontSize:11,background:"#fff2cc",fontWeight:400};
+const tdC  = {border:"1px solid #d1d5db",padding:"3px 7px",fontSize:11,textAlign:"center"};
+const tdGr = {border:"1px solid #d1d5db",padding:"2px 4px",fontSize:11,background:"#d9ead3",textAlign:"center"};
+const INP  = {width:"100%",border:"none",background:"transparent",fontSize:11,outline:"none",padding:0};
 
-function TabCalculadoras(){
+// ── Gestión familias de piezas ─────────────────────────────────────
+function GestorFamilias({ familias, setFamilias }){
+  const [form,setForm] = useState({nombre:"",pesoMin:"",pesoMax:"",formas:"",notas:""});
+  const ff = k => e => setForm(p=>({...p,[k]:e.target.value}));
+  const inp = {border:"1px solid #e5e7eb",borderRadius:5,padding:"5px 8px",fontSize:12,width:"100%",boxSizing:"border-box",outline:"none"};
+  function guardar(){
+    if(!form.nombre) return;
+    setFamilias(p=>[...p,{...form,id:Date.now()}]);
+    setForm({nombre:"",pesoMin:"",pesoMax:"",formas:"",notas:""});
+  }
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:14}}>
+      <div style={{fontSize:13,fontWeight:700,color:"#111827"}}>📂 Base de datos de familias de pieza</div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 2fr 2fr auto",gap:8,alignItems:"end"}}>
+        {[["nombre","Nombre familia (ej. K)"],["pesoMin","Peso mín (g)"],["pesoMax","Peso máx (g)"],["formas","Formas / descripción"],["notas","Notas"]].map(([k,l])=>(
+          <div key={k}>
+            <div style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:3}}>{l}</div>
+            <input value={form[k]} onChange={ff(k)} style={inp} placeholder={l}/>
+          </div>
+        ))}
+        <button onClick={guardar} style={{background:"#2563eb",color:"#fff",border:"none",borderRadius:6,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>+ Añadir</button>
+      </div>
+      {familias.length>0&&(
+        <table style={{borderCollapse:"collapse",fontSize:11,width:"100%"}}>
+          <thead>
+            <tr style={{background:"#f1f5f9"}}>
+              {["Familia","Peso mín","Peso máx","Formas / descripción","Notas",""].map(h=>(
+                <th key={h} style={{padding:"6px 10px",textAlign:"left",borderBottom:"1px solid #e2e8f0",color:"#6b7280",fontWeight:700,textTransform:"uppercase",fontSize:10}}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {familias.map((f,i)=>(
+              <tr key={f.id} style={{background:i%2===0?"#fff":"#f9fafb"}}>
+                <td style={{padding:"6px 10px",fontWeight:700,color:"#1d4ed8"}}>{f.nombre}</td>
+                <td style={{padding:"6px 10px"}}>{f.pesoMin} g</td>
+                <td style={{padding:"6px 10px"}}>{f.pesoMax} g</td>
+                <td style={{padding:"6px 10px"}}>{f.formas}</td>
+                <td style={{padding:"6px 10px",color:"#6b7280"}}>{f.notas}</td>
+                <td style={{padding:"6px 10px"}}>
+                  <button onClick={()=>setFamilias(p=>p.filter(x=>x.id!==f.id))}
+                    style={{background:"#fee2e2",border:"0.5px solid #fca5a5",color:"#b91c1c",borderRadius:4,padding:"2px 8px",fontSize:10,cursor:"pointer"}}>✕</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {familias.length===0&&<div style={{color:"#9ca3af",fontSize:12,textAlign:"center",padding:"20px 0"}}>Sin familias definidas aún. Añade la primera arriba.</div>}
+    </div>
+  );
+}
+
+// ── Calculadora principal ──────────────────────────────────────────
+function CalculadoraForm({ planta, familias }){
   const API_KEY = import.meta.env.VITE_ANTHROPIC_KEY;
-  const [planta,setPlanta] = useState("Esparreguera");
-  const [loading,setLoading] = useState(false);
-  const [error,setError] = useState("");
+  const [loading,setLoading]     = useState(false);
+  const [loadingFam,setLoadingFam] = useState(false);
+  const [error,setError]         = useState("");
 
-  const maqList = planta==="Esparreguera" ? MAQUINAS_ESP : MAQUINAS_VIT;
+  // Foto + familia
+  const [fotoB64,setFotoB64]     = useState(null);
+  const [fotoPreview,setFotoPreview] = useState(null);
+  const [familiaIA,setFamiliaIA] = useState("");
 
-  // Inputs
-  const [peso,setPeso]     = useState("1.863");
+  // Inputs básicos
+  const [peso,setPeso]     = useState("");
   const [ancho,setAncho]   = useState("");
   const [alto,setAlto]     = useState("");
   const [largo,setLargo]   = useState("");
-  const [familia,setFamilia] = useState("K");
-  const [recs,setRecs]     = useState({kl100_1:true,kl100_2:true});
-  const [reales,setReales] = useState({}); // {maqId: valor real}
+  const [familia,setFamilia] = useState("");
+  const [reales,setReales] = useState({...REALES_DEF});
 
-  // Outputs
+  // Pretratamiento
+  const [pretratBase]  = useState(PRETRAT_DEF);
+  const [pretratExtra, setPretratExtra] = useState([]);
+  const [pretratSel,setPretratSel]   = useState({Desengrasado:true,Fosfatado:false,Granallado:true});
+  const [newPretrat,setNewPretrat]   = useState("");
+
+  // Recubrimiento
+  const [basecoatBase]  = useState(BASECOAT_DEF);
+  const [basecoatExtra,setBasecoatExtra] = useState([]);
+  const [basecoatSel,setBasecoatSel] = useState({});   // {producto: nCapas}
+  const [topcoatBase]   = useState(TOPCOAT_DEF);
+  const [topcoatExtra,setTopcoatExtra] = useState([]);
+  const [topcoatSel,setTopcoatSel]   = useState({});   // {producto: nCapas}
+  const [newBasecoat,setNewBasecoat]   = useState("");
+  const [newTopcoat,setNewTopcoat]     = useState("");
+
+  // Resultados
   const [superficie,setSuperficie] = useState("-");
-  const [pesoPiezaKg,setPesoPiezaKg] = useState("0,0000");
-  const [volumen,setVolumen] = useState("0,0000");
-  const [kgSugeridos,setKgSugeridos] = useState({});
+  const [pesoPiezaKg,setPesoPiezaKg] = useState("");
+  const [volumen,setVolumen]       = useState("");
+  const [kgSug,setKgSug]           = useState({});
   const [tablaCesta,setTablaCesta]   = useState(null);
   const [tablaBastid,setTablaBastid] = useState(null);
 
-  const toggleRec = id => setRecs(p=>({...p,[id]:!p[id]}));
-  const recsON = RECS_LIST.filter(r=>recs[r.id]);
+  async function cargarFoto(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    const b64 = await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(file);});
+    setFotoB64(b64);
+    setFotoPreview(URL.createObjectURL(file));
+    // Auto-detectar familia si hay peso
+    if(peso) detectarFamilia(b64, peso);
+  }
+
+  async function detectarFamilia(b64=fotoB64, pesoVal=peso){
+    if(!b64||!pesoVal) return;
+    setLoadingFam(true);
+    const famDB = familias.length>0 ? familias.map(f=>`Familia ${f.nombre}: peso ${f.pesoMin}-${f.pesoMax}g, forma: ${f.formas}. ${f.notas}`).join("\n") : "No hay familias definidas, estima la familia según forma y peso (letras A-T).";
+    try{
+      const resp = await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":API_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:100,
+          messages:[{role:"user",content:[
+            {type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}},
+            {type:"text",text:`Analiza esta pieza metálica. Peso: ${pesoVal}g.\n\nBase de datos familias:\n${famDB}\n\nResponde SOLO con la letra/nombre de familia más adecuada, sin explicación.`}
+          ]}]})
+      });
+      const data = await resp.json();
+      const fam = data.content?.find(b=>b.type==="text")?.text?.trim()||"";
+      setFamiliaIA(fam);
+      setFamilia(fam);
+    }catch(e){console.error(e);}
+    finally{setLoadingFam(false);}
+  }
+
+  function toggleCapas(sel,setSel,prod,defaultN=1){
+    setSel(p=>({...p,[prod]:p[prod]?0:defaultN}));
+  }
+  function setCapas(sel,setSel,prod,n){
+    setSel(p=>({...p,[prod]:parseInt(n)||1}));
+  }
+
+  const pretratAll = [...pretratBase,...pretratExtra];
+  const basecoatAll = [...basecoatBase,...basecoatExtra];
+  const topcoatAll  = [...topcoatBase,...topcoatExtra];
 
   async function calcular(){
-    if(!peso){setError("Indica el peso de la pieza");return;}
+    if(!peso){setError("Indica el peso");return;}
     setLoading(true); setError("");
+    const pretratActivo = pretratAll.filter(p=>pretratSel[p]);
+    const basecoatActivo = basecoatAll.filter(p=>basecoatSel[p]>0).map(p=>`${basecoatSel[p]}x ${p}`);
+    const topcoatActivo  = topcoatAll.filter(p=>topcoatSel[p]>0).map(p=>`${topcoatSel[p]}x ${p}`);
+    const proceso = [...pretratActivo,...basecoatActivo,...topcoatActivo].join(" + ");
 
     const realesMap = {};
-    maqList.forEach(m=>{
-      const v = reales[m.id]??m.reales;
-      if(v!=="") realesMap[m.label.split(" ")[0]] = v;
-    });
+    MAQUINAS_CALC[planta].forEach(m=>{if(reales[m]!=null&&reales[m]!=="")realesMap[m]=reales[m];});
 
-    const prompt = `Eres el motor de cálculo de la calculadora de costos Torres Gumà (planta ${planta}).
+    const prompt = `Calculadora Torres Gumà planta ${planta}.
+Peso: ${peso}g | Dim: ${ancho||"?"}x${alto||"?"}x${largo||"?"}mm | Familia: ${familia||"?"} | Proceso: ${proceso||"sin definir"}
+Kg reales/cesta: ${JSON.stringify(realesMap)}
 
-INPUTS:
-- Peso pieza: ${peso} g
-- Dimensiones: ${ancho||"?"}mm x ${alto||"?"}mm x ${largo||"?"}mm
-- Familia: ${familia}
-- Recubrimientos activos: ${recsON.map(r=>r.label).join(", ")||"ninguno"}
-- Kg reales por cesta: ${JSON.stringify(realesMap)}
-
-Calcula exactamente igual que la calculadora Excel Torres Gumà:
-1. Superficie aproximada (cm²) y volumen (cm³) a partir de dimensiones
-2. Kg sugeridos por ciclo para cada máquina según peso y familia
-3. Tabla CISTELLA (€/kg): 4 tramos de lote × 4 columnas producción anual
-   - Lotes: "0 - 79 (PM)", "80 - 249", "250 - 999", "1000 - x"
-   - Columnas Prio1/2: "No aplica", "0 - 9999", "10000 - 99999", "100000 - x"
-   - Columnas Prio3/4: "0 - 2999", "3000 - 9999", "10000 - 99999", "100000 - x"
-4. Tabla BASTIDOR (€/ud): 4 tramos × 3 columnas: "0-699", "700 - 4999", "5000 - x"
-   - Lotes: "0 - 50 (PM)", "50 - 99", "100 - 699", "700 - x"
-
-Responde SOLO JSON sin markdown:
-{
-  "superficie": "valor cm²",
-  "peso_kg": "0.0000",
-  "volumen": "0.0000",
-  "kg_sugeridos": {"DES-01": 0, "GR-1": 0, "TWIN44": 0, "TWIN02": 0, "PRE-B": 0, "GR-B": 0, "MN-B": 0, "DC-02": 0, "Enmallado": 0},
-  "cesta": [
-    {"lote":"0 - 79 (PM)","c1":0,"c2":0,"c3":0,"c4":0},
-    {"lote":"80 - 249",   "c1":0,"c2":0,"c3":0,"c4":0},
-    {"lote":"250 - 999",  "c1":0,"c2":0,"c3":0,"c4":0},
-    {"lote":"1000 - x",   "c1":0,"c2":0,"c3":0,"c4":0}
-  ],
-  "bastidor": [
-    {"lote":"0 - 50 (PM)","c1":0,"c2":0,"c3":0},
-    {"lote":"50 - 99",    "c1":0,"c2":0,"c3":0},
-    {"lote":"100 - 699",  "c1":0,"c2":0,"c3":0},
-    {"lote":"700 - x",    "c1":0,"c2":0,"c3":0}
-  ]
-}`;
+Calcula como el Excel Torres Gumà. Responde SOLO JSON:
+{"superficie":"- cm²","peso_kg":"0.0000","volumen":"0.0000","kg_sugeridos":{"DES-01":0,"GR-1":0,"TWIN44":0,"TWIN02":0,"PRE-B":0,"GR-B":0,"MN-B":0,"DC-02":0,"Enmallado":0},"cesta":[{"lote":"0 - 79 (PM)","c1":0,"c2":0,"c3":0,"c4":0},{"lote":"80 - 249","c1":0,"c2":0,"c3":0,"c4":0},{"lote":"250 - 999","c1":0,"c2":0,"c3":0,"c4":0},{"lote":"1000 - x","c1":0,"c2":0,"c3":0,"c4":0}],"bastidor":[{"lote":"0 - 50 (PM)","c1":0,"c2":0,"c3":0},{"lote":"50 - 99","c1":0,"c2":0,"c3":0},{"lote":"100 - 699","c1":0,"c2":0,"c3":0},{"lote":"700 - x","c1":0,"c2":0,"c3":0}]}`;
 
     try{
       const resp = await fetch("https://api.anthropic.com/v1/messages",{
@@ -1112,203 +1135,280 @@ Responde SOLO JSON sin markdown:
       });
       const data = await resp.json();
       if(data.error) throw new Error(data.error.message);
-      const txt = data.content?.find(b=>b.type==="text")?.text||"";
-      const r = JSON.parse(txt.replace(/```json|```/g,"").trim());
+      const r = JSON.parse(data.content?.find(b=>b.type==="text")?.text?.replace(/```json|```/g,"").trim()||"{}");
       setSuperficie(r.superficie||"-");
-      setPesoPiezaKg(Number(r.peso_kg).toLocaleString("es-ES",{minimumFractionDigits:4,maximumFractionDigits:4}));
-      setVolumen(Number(r.volumen).toLocaleString("es-ES",{minimumFractionDigits:4,maximumFractionDigits:4}));
-      setKgSugeridos(r.kg_sugeridos||{});
+      setPesoPiezaKg(r.peso_kg||"0.0000");
+      setVolumen(r.volumen||"0.0000");
+      setKgSug(r.kg_sugeridos||{});
       setTablaCesta(r.cesta||null);
       setTablaBastid(r.bastidor||null);
     }catch(e){setError("Error: "+e.message);}
     finally{setLoading(false);}
   }
 
-  function fmt4(v){ return v!=null?Number(v).toLocaleString("es-ES",{minimumFractionDigits:4,maximumFractionDigits:4}):""; }
+  function fmt4(v){return v!=null?Number(v).toLocaleString("es-ES",{minimumFractionDigits:4,maximumFractionDigits:4}):""}
 
-  const tdI = {border:"1px solid #d1d5db",padding:"2px 4px",fontSize:11};
-  const thG = {border:"1px solid #d1d5db",padding:"3px 6px",fontSize:11,background:"#d9d9d9",fontWeight:700,textAlign:"center"};
-  const thY = {border:"1px solid #d1d5db",padding:"3px 6px",fontSize:11,background:"#fff2cc",fontWeight:700};
+  const sInput = {border:"1px solid #d1d5db",borderRadius:4,padding:"3px 6px",fontSize:11,outline:"none",width:"100%",boxSizing:"border-box"};
+  const sChk = (active) => ({display:"flex",alignItems:"center",gap:5,padding:"4px 8px",borderRadius:5,cursor:"pointer",background:active?"#d9ead3":"#f8fafc",border:`0.5px solid ${active?"#6ee7b7":"#e2e8f0"}`,userSelect:"none",fontSize:11});
 
   return(
-    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+    <div style={{display:"flex",gap:14,alignItems:"flex-start",flexWrap:"wrap"}}>
 
-      {/* Selector planta */}
-      <div style={{display:"flex",gap:8,alignItems:"center"}}>
-        <span style={{fontSize:12,fontWeight:700,color:"#374151"}}>Planta:</span>
-        {["Esparreguera","Vitoria"].map(p=>(
-          <button key={p} onClick={()=>{setPlanta(p);setTablaCesta(null);setTablaBastid(null);}}
-            style={{padding:"5px 16px",borderRadius:6,cursor:"pointer",fontWeight:planta===p?700:400,
-              background:planta===p?"#1e3a5f":"#f1f5f9",color:planta===p?"#fff":"#374151",
-              border:planta===p?"none":"1px solid #e2e8f0",fontSize:12}}>
-            {p==="Vitoria"?"🏙":"🌿"} {p}
-          </button>
-        ))}
-      </div>
+      {/* ── COLUMNA IZQUIERDA ── */}
+      <div style={{flex:"0 0 310px",minWidth:280,display:"flex",flexDirection:"column",gap:10}}>
 
-      {/* Layout Excel: izquierda + derecha */}
-      <div style={{display:"flex",gap:12,alignItems:"flex-start",flexWrap:"wrap"}}>
+        {/* FOTO + FAMILIA */}
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"12px 14px"}}>
+          <div style={{fontSize:12,fontWeight:700,color:"#374151",marginBottom:8,borderBottom:"1px solid #f1f5f9",paddingBottom:5}}>📷 Foto de la pieza</div>
+          <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+            <label style={{cursor:"pointer",flex:1}}>
+              <input type="file" accept="image/*" style={{display:"none"}} onChange={cargarFoto}/>
+              <div style={{border:"2px dashed #d1d5db",borderRadius:8,padding:"12px",textAlign:"center",fontSize:11,color:"#9ca3af",cursor:"pointer",background:"#f9fafb"}}>
+                {fotoPreview?<img src={fotoPreview} style={{maxWidth:"100%",maxHeight:80,objectFit:"contain",borderRadius:5}}/>:"📎 Subir foto"}
+              </div>
+            </label>
+            {fotoPreview&&(
+              <div style={{display:"flex",flexDirection:"column",gap:5}}>
+                <button onClick={()=>detectarFamilia()} disabled={!peso||loadingFam}
+                  style={{background:"#2563eb",color:"#fff",border:"none",borderRadius:6,padding:"6px 10px",fontSize:11,cursor:"pointer",fontWeight:700,whiteSpace:"nowrap"}}>
+                  {loadingFam?"⏳ Analizando...":"🔍 Detectar familia"}
+                </button>
+                {familiaIA&&<div style={{fontSize:10,color:"#166534",fontWeight:700,background:"#d1fae5",borderRadius:4,padding:"3px 8px",textAlign:"center"}}>IA → Familia {familiaIA}</div>}
+              </div>
+            )}
+          </div>
+        </div>
 
-        {/* ── COLUMNA IZQUIERDA ── */}
-        <div style={{flex:"0 0 280px",minWidth:260}}>
-          <table style={{borderCollapse:"collapse",width:"100%",tableLayout:"fixed"}}>
+        {/* PESO + DIMENSIONES */}
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,overflow:"hidden"}}>
+          <div style={{background:"#bdd7ee",padding:"5px 10px",fontSize:11,fontWeight:700,textAlign:"center"}}>Calculadora prova preu recobriment</div>
+          <div style={{background:"#bdd7ee",padding:"4px 10px",fontSize:10,fontWeight:700,textAlign:"center",borderTop:"1px solid #9fc5e8"}}>Indica amb una "A,B,C,D,F,G..."</div>
+          <table style={{borderCollapse:"collapse",width:"100%"}}>
             <tbody>
-              {/* Header */}
-              <tr><td colSpan={2} style={{...thG,textAlign:"center",background:"#bdd7ee",padding:"5px",fontSize:12}}>
-                Calculadora prova preu recobriment
-              </td></tr>
-              <tr><td colSpan={2} style={{...thG,background:"#bdd7ee",textAlign:"center",fontSize:11}}>
-                Indica amb una "A,B,C,D,F,G..."
-              </td></tr>
-
-              {/* Peso */}
-              <tr>
-                <td style={{...thY}}>Especifica pes de la peça (g)</td>
-                <td style={{...tdI,background:"#fff"}}><input value={peso} onChange={e=>setPeso(e.target.value)} style={{...INP}}/></td>
-              </tr>
-              {/* Dimensiones */}
-              {[["Ancho (mm)",ancho,setAncho],["Alto (mm)",alto,setAlto],["Largo (mm)",largo,setLargo]].map(([l,v,fn])=>(
+              {[["Especifica pes de la peça (g) *",peso,setPeso],["Ancho (mm)",ancho,setAncho],["Alto (mm)",alto,setAlto],["Largo (mm)",largo,setLargo]].map(([l,v,fn])=>(
                 <tr key={l}>
-                  <td style={{...thY}}>{l}</td>
-                  <td style={{...tdI,background:"#fff"}}><input value={v} onChange={e=>fn(e.target.value)} style={{...INP}}/></td>
-                </tr>
-              ))}
-              {/* Familia */}
-              <tr>
-                <td style={{...thY}}>Especifica familia de peça</td>
-                <td style={{...tdI,background:"#fff"}}>
-                  <input value={familia} onChange={e=>setFamilia(e.target.value.toUpperCase().slice(0,1))} style={{...INP}} maxLength={1}/>
-                </td>
-              </tr>
-
-              {/* Header recubrimientos */}
-              <tr><td colSpan={2} style={{...thG,background:"#bdd7ee",textAlign:"center",fontSize:11}}>
-                Especifica recubrimentos a utilizar marcando una "x"
-              </td></tr>
-
-              {/* Checkboxes recubrimientos */}
-              {RECS_LIST.filter(r=>planta==="Vitoria"||r.id!=="anticorit").map(r=>(
-                <tr key={r.id} style={{cursor:"pointer"}} onClick={()=>toggleRec(r.id)}>
-                  <td style={{...thY,background:"#fff",fontWeight:400,paddingLeft:8}}>{r.label}</td>
-                  <td style={{...tdI,textAlign:"center",background:recs[r.id]?"#d9ead3":"#fff",fontWeight:700,cursor:"pointer"}}>
-                    {recs[r.id]?"x":""}
+                  <td style={{...thY,width:"65%"}}>{l}</td>
+                  <td style={{border:"1px solid #d1d5db",padding:"2px 4px",background:"#fff"}}>
+                    <input value={v} onChange={e=>fn(e.target.value)} style={{...INP}}/>
                   </td>
                 </tr>
               ))}
+              <tr>
+                <td style={thY}>Especifica familia de peça</td>
+                <td style={{border:"1px solid #d1d5db",padding:"2px 4px",background:"#fff"}}>
+                  <input value={familia} onChange={e=>setFamilia(e.target.value.toUpperCase().slice(0,2))} style={{...INP}} placeholder="A-T"/>
+                </td>
+              </tr>
             </tbody>
           </table>
-
-          {/* Botón calcular */}
-          <button onClick={calcular} disabled={loading}
-            style={{marginTop:10,width:"100%",background:loading?"#94a3b8":"#1e3a5f",color:"#fff",border:"none",
-              borderRadius:6,padding:"9px",fontSize:12,fontWeight:700,cursor:loading?"not-allowed":"pointer"}}>
-            {loading?"⏳ Calculando...":"⚡ Calcular"}
-          </button>
-          {error&&<div style={{marginTop:6,fontSize:11,color:"#b91c1c",fontWeight:600}}>{error}</div>}
         </div>
 
-        {/* ── COLUMNA DERECHA ── */}
-        <div style={{flex:1,minWidth:400,display:"flex",flexDirection:"column",gap:10}}>
-
-          {/* Superficie / Peso / Volumen */}
-          <table style={{borderCollapse:"collapse",fontSize:11}}>
-            <tbody>
-              <tr>
-                <td style={{...CELL_HDR,minWidth:200}}>Superficie aproximada calculada</td>
-                <td style={{...thG,minWidth:110}}>Peso_pieza_kg</td>
-                <td style={{...thG,minWidth:110}}>Volumen cm^3</td>
-              </tr>
-              <tr>
-                <td style={{...CELL,textAlign:"center"}}>{superficie}</td>
-                <td style={{...CELL}}>{pesoPiezaKg}</td>
-                <td style={{...CELL}}>{volumen}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          {/* KG por ciclo */}
-          <table style={{borderCollapse:"collapse",fontSize:11}}>
-            <thead>
-              <tr>
-                <td style={{...thG,minWidth:220}}>KG por ciclo</td>
-                <td style={{...thG,minWidth:100,textAlign:"center"}}>Sugeridos</td>
-                <td style={{...thG,minWidth:100,textAlign:"center"}}>Reales</td>
-              </tr>
-            </thead>
-            <tbody>
-              {maqList.map(m=>{
-                const sug = kgSugeridos[m.label.split(" ")[0]]??kgSugeridos[m.id]??"";
-                const real = reales[m.id]??m.reales;
-                return(
-                  <tr key={m.id}>
-                    <td style={{...thY,fontWeight:400,paddingLeft:8}}>{m.label}</td>
-                    <td style={{...CELL,color:sug===""?"#9ca3af":"#111827"}}>
-                      {sug!==""?fmt4(sug):""}
-                    </td>
-                    <td style={{...CELL_GRN}}>
-                      <input value={real} onChange={e=>setReales(p=>({...p,[m.id]:e.target.value}))}
-                        style={{...INP,background:"transparent"}} placeholder=""/>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-
-          {/* Tabla CISTELLA */}
-          <table style={{borderCollapse:"collapse",fontSize:11}}>
-            <thead>
-              <tr>
-                <td style={{...thG}} rowSpan={2}>CISTELLA</td>
-                <td colSpan={4} style={{...thG,textAlign:"center",background:"#cfe2f3"}}>Produccions anuals</td>
-              </tr>
-              <tr>
-                <td style={{...thG,background:"#fff2cc",fontSize:10}}>Prio 1/2: No aplica<br/>Prio 3/4: 0-2999</td>
-                <td style={{...thG,background:"#fff2cc",fontSize:10}}>Prio 1/2: 0-9999<br/>Prio 3/4: 3000-9999</td>
-                <td style={{...thG,background:"#fff2cc",fontSize:10}}>Prio 1/2: 10000-99999<br/>Prio 3/4: 10000-99999</td>
-                <td style={{...thG,background:"#fff2cc",fontSize:10}}>100000-x</td>
-              </tr>
-            </thead>
-            <tbody>
-              {(tablaCesta||LOTES_CESTA.map(l=>({lote:l,c1:null,c2:null,c3:null,c4:null}))).map((r,i)=>(
-                <tr key={i}>
-                  <td style={{...thY}}>{r.lote}</td>
-                  {["c1","c2","c3","c4"].map(c=>(
-                    <td key={c} style={{...CELL}}>{r[c]!=null?fmt4(r[c]):""}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* Tabla BASTIDOR */}
-          <table style={{borderCollapse:"collapse",fontSize:11}}>
-            <thead>
-              <tr>
-                <td style={{...thG}}>BASTIDOR</td>
-                <td colSpan={3} style={{...thG,textAlign:"center",background:"#cfe2f3"}}>Produccions anuals</td>
-              </tr>
-              <tr>
-                <td style={{...thG,background:"#fff2cc",fontSize:10}}>Produccions lots (unitats)</td>
-                <td style={{...thG,background:"#fff2cc",fontSize:10,textAlign:"center"}}>0-699</td>
-                <td style={{...thG,background:"#fff2cc",fontSize:10,textAlign:"center"}}>700 - 4999</td>
-                <td style={{...thG,background:"#fff2cc",fontSize:10,textAlign:"center"}}>5000 - x</td>
-              </tr>
-            </thead>
-            <tbody>
-              {(tablaBastid||LOTES_BASTID.map(l=>({lote:l,c1:null,c2:null,c3:null}))).map((r,i)=>(
-                <tr key={i}>
-                  <td style={{...thY}}>{r.lote}</td>
-                  {["c1","c2","c3"].map(c=>(
-                    <td key={c} style={{...CELL}}>{r[c]!=null?fmt4(r[c]):""}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
+        {/* PRETRATAMIENTO */}
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"12px 14px"}}>
+          <div style={{fontSize:12,fontWeight:700,color:"#374151",marginBottom:8,borderBottom:"1px solid #f1f5f9",paddingBottom:5}}>🧪 Pretratamiento</div>
+          <div style={{display:"flex",flexDirection:"column",gap:5}}>
+            {pretratAll.map(p=>(
+              <label key={p} style={sChk(pretratSel[p])} onClick={()=>setPretratSel(x=>({...x,[p]:!x[p]}))}>
+                <input type="checkbox" checked={!!pretratSel[p]} readOnly style={{accentColor:"#22c55e"}}/>
+                <span>{p}</span>
+              </label>
+            ))}
+            <div style={{display:"flex",gap:5,marginTop:4}}>
+              <input value={newPretrat} onChange={e=>setNewPretrat(e.target.value)} placeholder="Añadir producto..."
+                style={{...sInput,flex:1}} onKeyDown={e=>{if(e.key==="Enter"&&newPretrat.trim()){setPretratExtra(p=>[...p,newPretrat.trim()]);setPretratSel(x=>({...x,[newPretrat.trim()]:true}));setNewPretrat("");}}}/>
+              <button onClick={()=>{if(newPretrat.trim()){setPretratExtra(p=>[...p,newPretrat.trim()]);setPretratSel(x=>({...x,[newPretrat.trim()]:true}));setNewPretrat("");}}}
+                style={{background:"#2563eb",color:"#fff",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:11,fontWeight:700}}>+</button>
+            </div>
+          </div>
         </div>
+
+        {/* RECUBRIMIENTO - BASECOAT */}
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"12px 14px"}}>
+          <div style={{fontSize:12,fontWeight:700,color:"#374151",marginBottom:8,borderBottom:"1px solid #f1f5f9",paddingBottom:5}}>🎨 Recubrimiento — Basecoat</div>
+          <div style={{fontSize:10,color:"#6b7280",marginBottom:6}}>Nº capas Basecoat (editable para todas las referencias)</div>
+          <div style={{display:"flex",flexDirection:"column",gap:5}}>
+            {basecoatAll.map(p=>(
+              <div key={p} style={{display:"flex",alignItems:"center",gap:6}}>
+                <label style={{...sChk(basecoatSel[p]>0),flex:1}} onClick={()=>toggleCapas(basecoatSel,setBasecoatSel,p)}>
+                  <input type="checkbox" checked={!!(basecoatSel[p]>0)} readOnly style={{accentColor:"#2563eb"}}/>
+                  <span>{p}</span>
+                </label>
+                {basecoatSel[p]>0&&(
+                  <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+                    <button onClick={()=>setCapas(basecoatSel,setBasecoatSel,p,Math.max(1,(basecoatSel[p]||1)-1))} style={{background:"#e5e7eb",border:"none",borderRadius:3,width:20,height:20,cursor:"pointer",fontSize:12,fontWeight:700}}>−</button>
+                    <span style={{fontSize:12,fontWeight:700,minWidth:16,textAlign:"center"}}>{basecoatSel[p]}</span>
+                    <button onClick={()=>setCapas(basecoatSel,setBasecoatSel,p,(basecoatSel[p]||1)+1)} style={{background:"#e5e7eb",border:"none",borderRadius:3,width:20,height:20,cursor:"pointer",fontSize:12,fontWeight:700}}>+</button>
+                  </div>
+                )}
+              </div>
+            ))}
+            <div style={{display:"flex",gap:5,marginTop:4}}>
+              <input value={newBasecoat} onChange={e=>setNewBasecoat(e.target.value)} placeholder="Añadir producto..."
+                style={{...sInput,flex:1}} onKeyDown={e=>{if(e.key==="Enter"&&newBasecoat.trim()){setBasecoatExtra(p=>[...p,newBasecoat.trim()]);setNewBasecoat("");}}}/>
+              <button onClick={()=>{if(newBasecoat.trim()){setBasecoatExtra(p=>[...p,newBasecoat.trim()]);setNewBasecoat("");}}}
+                style={{background:"#2563eb",color:"#fff",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:11,fontWeight:700}}>+</button>
+            </div>
+          </div>
+        </div>
+
+        {/* RECUBRIMIENTO - TOPCOAT */}
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"12px 14px"}}>
+          <div style={{fontSize:12,fontWeight:700,color:"#374151",marginBottom:8,borderBottom:"1px solid #f1f5f9",paddingBottom:5}}>✨ Recubrimiento — Topcoat</div>
+          <div style={{fontSize:10,color:"#6b7280",marginBottom:6}}>Nº capas Topcoat (editable)</div>
+          <div style={{display:"flex",flexDirection:"column",gap:4}}>
+            {topcoatAll.map(p=>(
+              <div key={p} style={{display:"flex",alignItems:"center",gap:6}}>
+                <label style={{...sChk(topcoatSel[p]>0),flex:1}} onClick={()=>toggleCapas(topcoatSel,setTopcoatSel,p)}>
+                  <input type="checkbox" checked={!!(topcoatSel[p]>0)} readOnly style={{accentColor:"#7c3aed"}}/>
+                  <span>{p}</span>
+                </label>
+                {topcoatSel[p]>0&&(
+                  <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+                    <button onClick={()=>setCapas(topcoatSel,setTopcoatSel,p,Math.max(1,(topcoatSel[p]||1)-1))} style={{background:"#e5e7eb",border:"none",borderRadius:3,width:20,height:20,cursor:"pointer",fontSize:12,fontWeight:700}}>−</button>
+                    <span style={{fontSize:12,fontWeight:700,minWidth:16,textAlign:"center"}}>{topcoatSel[p]}</span>
+                    <button onClick={()=>setCapas(topcoatSel,setTopcoatSel,p,(topcoatSel[p]||1)+1)} style={{background:"#e5e7eb",border:"none",borderRadius:3,width:20,height:20,cursor:"pointer",fontSize:12,fontWeight:700}}>+</button>
+                  </div>
+                )}
+              </div>
+            ))}
+            <div style={{display:"flex",gap:5,marginTop:4}}>
+              <input value={newTopcoat} onChange={e=>setNewTopcoat(e.target.value)} placeholder="Añadir producto..."
+                style={{...sInput,flex:1}} onKeyDown={e=>{if(e.key==="Enter"&&newTopcoat.trim()){setTopcoatExtra(p=>[...p,newTopcoat.trim()]);setNewTopcoat("");}}}/>
+              <button onClick={()=>{if(newTopcoat.trim()){setTopcoatExtra(p=>[...p,newTopcoat.trim()]);setNewTopcoat("");}}}
+                style={{background:"#2563eb",color:"#fff",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:11,fontWeight:700}}>+</button>
+            </div>
+          </div>
+        </div>
+
+        {/* BOTÓN CALCULAR */}
+        <button onClick={calcular} disabled={loading}
+          style={{background:loading?"#94a3b8":"#1e3a5f",color:"#fff",border:"none",borderRadius:8,padding:"10px",fontSize:13,fontWeight:700,cursor:loading?"not-allowed":"pointer"}}>
+          {loading?"⏳ Calculando...":"⚡ Calcular costos"}
+        </button>
+        {error&&<div style={{fontSize:11,color:"#b91c1c",fontWeight:600}}>{error}</div>}
       </div>
+
+      {/* ── COLUMNA DERECHA — RESULTADOS ── */}
+      <div style={{flex:1,minWidth:380,display:"flex",flexDirection:"column",gap:10}}>
+
+        {/* Superficie / Peso / Volumen */}
+        <table style={{borderCollapse:"collapse",fontSize:11}}>
+          <tbody>
+            <tr>
+              <td style={{...thG,minWidth:180}}>Superficie aproximada calculada</td>
+              <td style={{...thG,minWidth:110,textAlign:"center"}}>Peso_pieza_kg</td>
+              <td style={{...thG,minWidth:110,textAlign:"center"}}>Volumen cm^3</td>
+            </tr>
+            <tr>
+              <td style={{...tdC}}>{superficie}</td>
+              <td style={{...tdC}}>{pesoPiezaKg}</td>
+              <td style={{...tdC}}>{volumen}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* KG por ciclo */}
+        <table style={{borderCollapse:"collapse",fontSize:11}}>
+          <thead>
+            <tr>
+              <td style={{...thG,minWidth:200}}>KG por ciclo</td>
+              <td style={{...thG,textAlign:"center",minWidth:90}}>Sugeridos</td>
+              <td style={{...thG,textAlign:"center",minWidth:90}}>Reales</td>
+            </tr>
+          </thead>
+          <tbody>
+            {MAQUINAS_CALC[planta].map(m=>(
+              <tr key={m}>
+                <td style={thY}>{m}</td>
+                <td style={tdC}>{kgSug[m]!=null?fmt4(kgSug[m]):""}</td>
+                <td style={tdGr}>
+                  <input value={reales[m]??""} onChange={e=>setReales(p=>({...p,[m]:e.target.value}))} style={{...INP,background:"transparent"}}/>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* CISTELLA */}
+        <table style={{borderCollapse:"collapse",fontSize:11}}>
+          <thead>
+            <tr>
+              <td style={thG} rowSpan={2}>CISTELLA</td>
+              <td colSpan={4} style={{...thG,textAlign:"center",background:"#cfe2f3"}}>Produccions anuals</td>
+            </tr>
+            <tr>
+              {[["Prio 1/2: No aplica","Prio 3/4: 0-2999"],["Prio 1/2: 0-9999","Prio 3/4: 3000-9999"],["Prio 1/2: 10k-99k","Prio 3/4: 10k-99k"],["100000 - x"]].map((h,i)=>(
+                <td key={i} style={{...thG,background:"#fff2cc",fontSize:9,textAlign:"center"}}>{Array.isArray(h)?h.join("\n"):h}</td>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {(tablaCesta||LOTES_CESTA.map(l=>({lote:l}))).map((r,i)=>(
+              <tr key={i}><td style={thY}>{r.lote}</td>{["c1","c2","c3","c4"].map(c=><td key={c} style={tdC}>{r[c]!=null?fmt4(r[c]):""}</td>)}</tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* BASTIDOR */}
+        <table style={{borderCollapse:"collapse",fontSize:11}}>
+          <thead>
+            <tr>
+              <td style={thG}>BASTIDOR</td>
+              <td colSpan={3} style={{...thG,textAlign:"center",background:"#cfe2f3"}}>Produccions anuals</td>
+            </tr>
+            <tr>
+              {["Produccions lots (unitats)","0-699","700 - 4999","5000 - x"].map((h,i)=>(
+                <td key={i} style={{...thG,background:"#fff2cc",fontSize:10,textAlign:"center"}}>{h}</td>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {(tablaBastid||LOTES_BASTID.map(l=>({lote:l}))).map((r,i)=>(
+              <tr key={i}><td style={thY}>{r.lote}</td>{["c1","c2","c3"].map(c=><td key={c} style={tdC}>{r[c]!=null?fmt4(r[c]):""}</td>)}</tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ── Tab principal con sub-tabs ──────────────────────────────────────
+function TabCalculadoras(){
+  const [subTab,setSubTab] = useState("calc");
+  const [planta,setPlanta] = useState("Esparreguera");
+  const [familias,setFamilias] = useState([]);
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:12}}>
+      {/* Sub-tabs + planta */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+        <div style={{display:"flex",gap:2,background:"#f1f5f9",borderRadius:8,padding:3}}>
+          {[["calc","⚡ Calculadora"],["familias","📂 Familias de pieza"]].map(([v,l])=>(
+            <button key={v} onClick={()=>setSubTab(v)}
+              style={{padding:"6px 14px",borderRadius:6,fontSize:12,fontWeight:subTab===v?700:400,cursor:"pointer",
+                background:subTab===v?"#fff":"transparent",color:subTab===v?"#1d4ed8":"#6b7280",
+                border:subTab===v?"1px solid #e2e8f0":"none",boxShadow:subTab===v?"0 1px 3px rgba(0,0,0,.08)":"none"}}>
+              {l}
+            </button>
+          ))}
+        </div>
+        {subTab==="calc"&&(
+          <div style={{display:"flex",gap:6,alignItems:"center"}}>
+            <span style={{fontSize:11,color:"#6b7280"}}>Planta:</span>
+            {["Esparreguera","Vitoria"].map(p=>(
+              <button key={p} onClick={()=>setPlanta(p)}
+                style={{padding:"4px 12px",borderRadius:6,fontSize:11,fontWeight:planta===p?700:400,cursor:"pointer",
+                  background:planta===p?"#1e3a5f":"#f1f5f9",color:planta===p?"#fff":"#374151",
+                  border:planta===p?"none":"1px solid #e2e8f0"}}>
+                {p==="Vitoria"?"🏙":"🌿"} {p}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      {subTab==="calc"    && <CalculadoraForm planta={planta} familias={familias}/>}
+      {subTab==="familias"&& <GestorFamilias familias={familias} setFamilias={setFamilias}/>}
     </div>
   );
 }
