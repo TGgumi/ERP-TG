@@ -180,7 +180,7 @@ function FTag({f}){
   return<span style={{display:"inline-flex",padding:"1px 5px",borderRadius:4,fontSize:9.5,fontWeight:700,background:c+"22",color:c,border:`0.5px solid ${c}55`}}>{f}</span>;
 }
 
-function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,confirmadas,bloqueadas}){
+function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,bastidores,confirmadas,bloqueadas}){
   const s=SC[sem(o.fentrega)];
   const c=cic(o,maq);
   const a=atr(o.fentrega);
@@ -206,6 +206,11 @@ function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,confirma
         <div style={{fontSize:10.5,color:s.tx,opacity:.7,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:220}}>{o.proceso}</div>
         <div style={{fontSize:10,color:s.tx,opacity:.55,marginTop:1}}>ref: {o.ref}</div>
         {(()=>{const fot=(fichas||[]).find(f=>f.ref_cli===o.ref||f.desc===o.ref)?.foto;return fot?<img src={fot} alt={o.ref} style={{marginTop:5,width:48,height:48,objectFit:"cover",borderRadius:6,border:"1px solid #e2e8f0"}}/>:null;})()}
+        {confirmadas.has&&["DB02","GR-BAST","MN Bastid"].includes(maq)&&confirmadas.has(`${o.of}:${maq}`)&&bastidores&&bastidores[`${o.of}:${maq}`]&&(
+          <div style={{marginTop:4,fontSize:10,fontWeight:700,color:"#1d4ed8",background:"#eff6ff",borderRadius:4,padding:"2px 7px",display:"inline-block",border:"0.5px solid #bfdbfe"}}>
+            🗂 {bastidores[`${o.of}:${maq}`]} bastidores
+          </div>
+        )}
         {o.nPed&&o.cli!=null&&(
           <div style={{marginTop:6,background:"#fff",borderRadius:6,border:"1px solid #e2e8f0",padding:"5px 8px",display:"inline-block"}}>
             <Barcode39 text={`OF-${String(o.cli||"000").padStart(3,"0")}${o.nPed}`}/>
@@ -272,7 +277,7 @@ function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,confirma
   );
 }
 
-function HornoCard({maq,num,ofs_h,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,confirmadas,bloqueadas}){
+function HornoCard({maq,num,ofs_h,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,bastidores,confirmadas,bloqueadas}){
   const [open,setOpen]=useState(true);
   const tot=ofs_h.reduce((s,o)=>s+cic(o,maq),0);
   const ok=tot>=HMIN&&tot<=HMAX;
@@ -301,14 +306,14 @@ function HornoCard({maq,num,ofs_h,onNC,onOK,onDeshacer,onDeshacerNC,operario,fic
       </div>
       {open&&(
         <div style={{paddingLeft:6,paddingTop:5,display:"flex",flexDirection:"column",gap:4}}>
-          {ofs_h.map((o,i)=><OFRow key={`${o.of}-${i}`} o={o} maq={maq} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} fichas={fichas} confirmadas={confirmadas} bloqueadas={bloqueadas}/>)}
+          {ofs_h.map((o,i)=><OFRow key={`${o.of}-${i}`} o={o} maq={maq} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} fichas={fichas} bastidores={bastidores} confirmadas={confirmadas} bloqueadas={bloqueadas}/>)}
         </div>
       )}
     </div>
   );
 }
 
-function VistaMaquina({maq,plan,usaHornos,est,onCambiarEst,operario,onCambiarOperario,onNC,onOK,onDeshacer,onDeshacerNC,fichas,confirmadas,bloqueadas}){
+function VistaMaquina({maq,plan,usaHornos,est,onCambiarEst,operario,onCambiarOperario,onNC,onOK,onDeshacer,onDeshacerNC,fichas,bastidores,confirmadas,bloqueadas}){
   const col=EC[est]||EC["Espera"];
   const hornos={};
   if(usaHornos){plan.forEach(o=>{const h=o.horno||1;if(!hornos[h])hornos[h]=[];hornos[h].push(o);});}
@@ -354,12 +359,12 @@ function VistaMaquina({maq,plan,usaHornos,est,onCambiarEst,operario,onCambiarOpe
         ):usaHornos?(
           // Vista con hornos (TWIN44, TWIN02, MN-01)
           Object.entries(hornos).map(([h,ofs_h])=>(
-            <HornoCard key={h} maq={maq} num={+h} ofs_h={ofs_h} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} fichas={fichas} confirmadas={confirmadas} bloqueadas={bloqueadas}/>
+            <HornoCard key={h} maq={maq} num={+h} ofs_h={ofs_h} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} fichas={fichas} bastidores={bastidores} confirmadas={confirmadas} bloqueadas={bloqueadas}/>
           ))
         ):(
           // Vista sin hornos — lista directa
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            {plan.map((o,i)=><OFRow key={`${o.of}-${i}`} o={o} maq={maq} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} fichas={fichas} confirmadas={confirmadas} bloqueadas={bloqueadas}/>)}
+            {plan.map((o,i)=><OFRow key={`${o.of}-${i}`} o={o} maq={maq} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} fichas={fichas} bastidores={bastidores} confirmadas={confirmadas} bloqueadas={bloqueadas}/>)}
           </div>
         )}
       </div>
@@ -446,7 +451,7 @@ function FotoInput({label, url, nombre, onFile, onClear, obligatoria=false}){
   );
 }
 
-function ModalControl({maqId, of_, onClose, onGuardar}){
+function ModalControl({maqId, of_, onClose, onGuardar, nBastPrev}){
   const tipo = MAQUINAS_CTRL[maqId];
   const esPintura = tipo === "Pintura";
 
@@ -456,7 +461,7 @@ function ModalControl({maqId, of_, onClose, onGuardar}){
 
   // Zirblast / Sulfato
   const [valor,      setValor]      = useState("");
-  const [nBast,      setNBast]      = useState(""); // solo DB02
+  const [nBast,      setNBast]      = useState(nBastPrev||""); // bastidores — DB02/GR-BAST/MN Bastid
   const [fotoUrl,    setFotoUrl]    = useState(null);
   const [fotoNombre, setFotoNombre] = useState("");
 
@@ -478,14 +483,15 @@ function ModalControl({maqId, of_, onClose, onGuardar}){
         valor: "Control pintura",
       });
     } else {
-      onGuardar({ resultado, valor, obs, fotoUrl, fotoNombre, genNC, ...(maqId==="DB02"?{nBastidores:nBast}:{}) });
+      onGuardar({ resultado, valor, obs, fotoUrl, fotoNombre, genNC, ...(esBast?{nBastidores:nBast}:{}) });
     }
   }
 
   const esNOK = resultado === "NOK";
   const genNC = esNOK; // genera NC automáticamente si es NOK
-  // DB02: requiere nº bastidores
-  const needsBast = maqId==="DB02" && !nBast;
+  // DB02 / GR-BAST / MN Bastid: requiere nº bastidores
+  const esBast = ["DB02","GR-BAST","MN Bastid"].includes(maqId);
+  const needsBast = esBast && !nBast;
   // Pintura: validar que haya al menos 1 foto pieza y la foto cinta
   const canSave = !needsBast && esPintura
     ? fotosPiezas.some(f=>f) && fotoCinta
@@ -1238,6 +1244,7 @@ export default function VistaOperario(){
   const [confirmadas,setConfirmadas]=useState(new Set()); // Set de "ofId:maqId"
   const [ncTurno,setNcTurno]=useState([]);
   const [pendCtrl,setPendCtrl]=useState(null); // {maqId, of_}
+  const [bastidores,setBastidores]=useState({}); // {"ofId:maqId": nBast}
   const [operarios,setOperarios]=useState({}); // {maqId: nombre}
   const [vista,setVista]=useState('maquinas'); // 'maquinas' | 'turnos' | 'buzon'
   const [planta,setPlanta]=useState(null); // null = sin seleccionar
@@ -1278,7 +1285,7 @@ export default function VistaOperario(){
     if(MAQUINAS_CTRL[maqActiva]){ setPendCtrl({maqId:maqActiva,of_:o}); }
     else { confirmarOF(o, maqActiva); }
   }
-  function guardarControl({resultado,valor,obs,fotoUrl,fotoNombre,fotosPiezas,nombresPiezas,fotoCinta,nombreCinta}){
+  function guardarControl({resultado,valor,obs,fotoUrl,fotoNombre,fotosPiezas,nombresPiezas,fotoCinta,nombreCinta,nBastidores}){
     const {maqId,of_}=pendCtrl;
     const tipo=MAQUINAS_CTRL[maqId];
     const ahora=new Date().toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});
@@ -1459,6 +1466,7 @@ export default function VistaOperario(){
           onCambiarOperario={cambOp}
           onDeshacer={o=>desconfirmarOF(o,maqActiva)}
           onDeshacerNC={(o,bloq)=>deshacerNC(o,bloq)}
+          bastidores={bastidores}
           confirmadas={confirmadas}
           bloqueadas={bloqueadas}
         />
@@ -1467,7 +1475,7 @@ export default function VistaOperario(){
       {/* Modal NC */}
       {mNC&&<ModalNC maqId={mNC.maqId} of_={mNC.of_} onClose={()=>setMNC(null)} onGuardar={guardarNC}/>}
       {/* Modal Control proceso */}
-      {pendCtrl&&<ModalControl maqId={pendCtrl.maqId} of_={pendCtrl.of_} onClose={()=>setPendCtrl(null)} onGuardar={guardarControl}/>}
+      {pendCtrl&&<ModalControl maqId={pendCtrl.maqId} of_={pendCtrl.of_} nBastPrev={bastidores[`${pendCtrl.of_.of}:${pendCtrl.maqId}`]||""} onClose={()=>setPendCtrl(null)} onGuardar={guardarControl}/>}
       </div>}
     </div>
   );
