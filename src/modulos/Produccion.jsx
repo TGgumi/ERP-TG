@@ -251,8 +251,12 @@ function OFModal({ onClose, onSave }) {
                   <input type="number" value={kg} onChange={e=>setKg(e.target.value)} style={inp}/>
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                  <label style={{fontSize:10.5,fontWeight:500,color:"#6b7280",textTransform:"uppercase",letterSpacing:".04em"}}>F. Entrega (DD/MM) *</label>
-                  <input value={fe} onChange={e=>setFe(e.target.value)} placeholder="ej. 25/03" style={inp}/>
+                  <label style={{fontSize:10.5,fontWeight:500,color:"#6b7280",textTransform:"uppercase",letterSpacing:".04em"}}>F. Entrega *</label>
+                  <input type="date"
+                    value={fe ? (()=>{ const [d,m]=fe.split("/"); const y=new Date().getFullYear(); return `${y}-${(m||"").padStart(2,"0")}-${(d||"").padStart(2,"0")`; })() : ""}
+                    min={new Date().toISOString().split("T")[0]}
+                    onChange={e=>{ const [y,m,d]=e.target.value.split("-"); setFe(`${d}/${m}`); }}
+                    style={{...inp,colorScheme:"light"}}/>
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:4}}>
                   <label style={{fontSize:10.5,fontWeight:500,color:"#6b7280",textTransform:"uppercase",letterSpacing:".04em"}}>Lote</label>
