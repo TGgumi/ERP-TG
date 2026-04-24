@@ -456,6 +456,7 @@ function ModalControl({maqId, of_, onClose, onGuardar}){
 
   // Zirblast / Sulfato
   const [valor,      setValor]      = useState("");
+  const [nBast,      setNBast]      = useState(""); // solo DB02
   const [fotoUrl,    setFotoUrl]    = useState(null);
   const [fotoNombre, setFotoNombre] = useState("");
 
@@ -477,14 +478,16 @@ function ModalControl({maqId, of_, onClose, onGuardar}){
         valor: "Control pintura",
       });
     } else {
-      onGuardar({ resultado, valor, obs, fotoUrl, fotoNombre, genNC });
+      onGuardar({ resultado, valor, obs, fotoUrl, fotoNombre, genNC, ...(maqId==="DB02"?{nBastidores:nBast}:{}) });
     }
   }
 
   const esNOK = resultado === "NOK";
   const genNC = esNOK; // genera NC automáticamente si es NOK
+  // DB02: requiere nº bastidores
+  const needsBast = maqId==="DB02" && !nBast;
   // Pintura: validar que haya al menos 1 foto pieza y la foto cinta
-  const canSave = esPintura
+  const canSave = !needsBast && esPintura
     ? fotosPiezas.some(f=>f) && fotoCinta
     : true;
 
