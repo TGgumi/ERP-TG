@@ -562,13 +562,209 @@ function PortalLogin({ onLogin }){
 }
 
 // ─── PORTAL PRINCIPAL ──────────────────────────────────────────────
+
+function PortalCalidad({ certs }){
+  const [seccion,setSeccion] = useState("certs");
+  const [reclamaciones,setReclamaciones] = useState([]);
+  const [modal,setModal] = useState(false);
+  const [form,setForm] = useState({of:"",ref:"",tipo:"No conformidad",desc:"",urgencia:"Normal"});
+  const [enviada,setEnviada] = useState(false);
+  const ff = k => e => setForm(p=>({...p,[k]:e.target.value}));
+  const sInp = {border:"1px solid #e5e7eb",borderRadius:6,padding:"7px 9px",fontSize:12,width:"100%",boxSizing:"border-box",outline:"none"};
+  const sLbl = {fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:".05em",display:"block",marginBottom:3};
+
+  function enviarReclamacion(){
+    if(!form.desc.trim()) return;
+    const nueva = {
+      id:`REC-${String(reclamaciones.length+1).padStart(3,"0")}`,
+      fecha:new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit",year:"numeric"}),
+      of:form.of, ref:form.ref, tipo:form.tipo,
+      desc:form.desc, urgencia:form.urgencia,
+      estado:"Recibida",
+    };
+    setReclamaciones(p=>[nueva,...p]);
+    setForm({of:"",ref:"",tipo:"No conformidad",desc:"",urgencia:"Normal"});
+    setModal(false);
+    setEnviada(true);
+    setTimeout(()=>setEnviada(false),3000);
+  }
+
+  const URGENCIA_COL = {
+    "Normal": {bg:"#f3f4f6",tx:"#374151"},
+    "Alta":   {bg:"#fef3c7",tx:"#b45309"},
+    "Urgente":{bg:"#fee2e2",tx:"#b91c1c"},
+  };
+  const REC_EST = {
+    "Recibida":   {label:"Recibida",   color:"#0891b2"},
+    "En análisis":{label:"En análisis",color:"#7c3aed"},
+    "Resuelta":   {label:"Resuelta ✓", color:"#16a34a"},
+    "Cerrada":    {label:"Cerrada",    color:"#6b7280"},
+  };
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:14}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
+        <SectionTitle icon="🏅" title="Departamento de Calidad" subtitle="Certificados de calidad y gestión de reclamaciones"/>
+        <button onClick={()=>setModal(true)}
+          style={{background:"#dc2626",color:"#fff",border:"none",borderRadius:8,padding:"9px 18px",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
+          🚨 Poner una reclamación
+        </button>
+      </div>
+
+      {/* Aviso reclamación enviada */}
+      {enviada&&(
+        <div style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:8,padding:"10px 14px",fontSize:12,color:"#166534",fontWeight:600}}>
+          ✅ Reclamación enviada correctamente. El equipo de calidad la revisará en breve.
+        </div>
+      )}
+
+      {/* Sub-tabs */}
+      <div style={{display:"flex",gap:4,background:"#f1f5f9",borderRadius:8,padding:3,alignSelf:"flex-start"}}>
+        {[["certs","🏅 Certificados"],["recs","🚨 Reclamaciones"]].map(([v,l])=>(
+          <button key={v} onClick={()=>setSeccion(v)}
+            style={{padding:"6px 14px",borderRadius:6,fontSize:12,fontWeight:seccion===v?700:400,cursor:"pointer",
+              background:seccion===v?"#fff":"transparent",color:seccion===v?"#dc2626":"#6b7280",
+              border:seccion===v?"1px solid #e2e8f0":"none",
+              boxShadow:seccion===v?"0 1px 3px rgba(0,0,0,.08)":"none"}}>
+            {l} {v==="recs"&&reclamaciones.length>0&&<span style={{fontSize:9,background:"#dc2626",color:"#fff",borderRadius:10,padding:"1px 5px",marginLeft:3}}>{reclamaciones.length}</span>}
+          </button>
+        ))}
+      </div>
+
+      {/* Certificados */}
+      {seccion==="certs"&&(
+        <Card style={{padding:0,overflow:"hidden"}}>
+          <table style={{borderCollapse:"collapse",width:"100%",fontSize:12}}>
+            <thead>
+              <tr style={{background:"#f8fafc"}}>
+                {["Certificado","Fecha","Referencia","OF","Lote","Tipo","Estado",""].map(h=>(
+                  <th key={h} style={{padding:"10px 12px",textAlign:"left",borderBottom:"1px solid #e5e7eb",fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase"}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {certs.length===0&&(
+                <tr><td colSpan={8} style={{padding:"24px",textAlign:"center",color:"#9ca3af"}}>Sin certificados disponibles</td></tr>
+              )}
+              {certs.map((c,i)=>(
+                <tr key={c.id} style={{background:i%2===0?"#fff":"#fafafa",borderBottom:"0.5px solid #f1f5f9"}}>
+                  <td style={{padding:"9px 12px",fontFamily:"monospace",fontWeight:700,color:"#1d4ed8"}}>{c.id}</td>
+                  <td style={{padding:"9px 12px",color:"#6b7280"}}>{c.fecha}</td>
+                  <td style={{padding:"9px 12px",fontFamily:"monospace",fontSize:11}}>{c.ref}</td>
+                  <td style={{padding:"9px 12px",fontFamily:"monospace",fontSize:11}}>{c.of}</td>
+                  <td style={{padding:"9px 12px"}}>{c.lote}</td>
+                  <td style={{padding:"9px 12px",fontSize:11}}>{c.tipo}</td>
+                  <td style={{padding:"9px 12px"}}>
+                    <span style={{fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:10,
+                      background:c.estado==="emitido"?"#dcfce7":"#fef3c7",color:c.estado==="emitido"?"#166534":"#b45309"}}>
+                      {c.estado==="emitido"?"✓ Emitido":"⏳ Pendiente"}
+                    </span>
+                  </td>
+                  <td style={{padding:"9px 12px"}}>
+                    {c.estado==="emitido"&&(
+                      <button style={{background:"#f1f5f9",border:"0.5px solid #e2e8f0",color:"#374151",borderRadius:5,padding:"3px 8px",fontSize:10,cursor:"pointer"}}>
+                        ↓ PDF
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      )}
+
+      {/* Reclamaciones */}
+      {seccion==="recs"&&(
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {reclamaciones.length===0&&(
+            <Card>
+              <div style={{textAlign:"center",color:"#9ca3af",padding:"30px 0"}}>
+                <div style={{fontSize:32,marginBottom:8}}>✅</div>
+                <div style={{fontSize:13,fontWeight:600}}>Sin reclamaciones activas</div>
+                <div style={{fontSize:11,marginTop:4}}>Si tienes alguna incidencia de calidad, usa el botón rojo para comunicarla.</div>
+              </div>
+            </Card>
+          )}
+          {reclamaciones.map(r=>{
+            const u = URGENCIA_COL[r.urgencia]||URGENCIA_COL["Normal"];
+            return(
+              <Card key={r.id}>
+                <div style={{display:"flex",alignItems:"flex-start",gap:12,flexWrap:"wrap"}}>
+                  <div style={{flex:1}}>
+                    <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:5,flexWrap:"wrap"}}>
+                      <span style={{fontFamily:"monospace",fontSize:12,fontWeight:700,color:"#6b7280"}}>{r.id}</span>
+                      <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:10,background:u.bg,color:u.tx}}>{r.urgencia}</span>
+                      <span style={{fontSize:10,fontWeight:700,color:REC_EST[r.estado]?.color||"#6b7280"}}>{REC_EST[r.estado]?.label||r.estado}</span>
+                      <span style={{fontSize:10,color:"#9ca3af"}}>{r.fecha}</span>
+                    </div>
+                    <div style={{fontSize:13,fontWeight:600,color:"#111827"}}>{r.tipo}</div>
+                    {(r.of||r.ref)&&<div style={{fontSize:11,color:"#6b7280",marginTop:2}}>OF: {r.of||"—"} · Ref: {r.ref||"—"}</div>}
+                    <div style={{fontSize:12,color:"#374151",marginTop:6,background:"#f8fafc",borderRadius:6,padding:"8px 10px",lineHeight:1.5}}>{r.desc}</div>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Modal reclamación */}
+      {modal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:700,padding:16}}
+          onClick={e=>{if(e.target===e.currentTarget)setModal(false);}}>
+          <div style={{background:"#fff",borderRadius:12,width:500,maxWidth:"98%",boxShadow:"0 25px 60px rgba(0,0,0,.3)",overflow:"hidden"}}>
+            <div style={{background:"#dc2626",padding:"14px 20px",color:"#fff"}}>
+              <div style={{fontSize:15,fontWeight:700}}>🚨 Poner una reclamación de calidad</div>
+              <div style={{fontSize:11,opacity:.85,marginTop:2}}>Tu reclamación llegará directamente al departamento de calidad de Torres Gumà</div>
+            </div>
+            <div style={{padding:"18px 20px",display:"flex",flexDirection:"column",gap:12}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                <div><label style={sLbl}>Nº OF (si aplica)</label><input value={form.of} onChange={ff("of")} style={sInp} placeholder="ej. 48545"/></div>
+                <div><label style={sLbl}>Referencia</label><input value={form.ref} onChange={ff("ref")} style={sInp} placeholder="ej. 208322..."/></div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                <div>
+                  <label style={sLbl}>Tipo de reclamación</label>
+                  <select value={form.tipo} onChange={ff("tipo")} style={sInp}>
+                    {["No conformidad","Defecto de recubrimiento","Espesor fuera de especificación","Resistencia corrosión insuficiente","Aspecto visual","Daño en pieza","Entrega incorrecta","Documentación incompleta","Otro"].map(t=><option key={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={sLbl}>Urgencia</label>
+                  <select value={form.urgencia} onChange={ff("urgencia")} style={sInp}>
+                    {["Normal","Alta","Urgente"].map(u=><option key={u}>{u}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label style={sLbl}>Descripción de la incidencia *</label>
+                <textarea value={form.desc} onChange={ff("desc")} rows={4}
+                  placeholder="Describe con detalle qué ha ocurrido, cuándo lo has detectado, cuántas piezas están afectadas y cualquier otra información relevante..."
+                  style={{...sInp,resize:"vertical",fontFamily:"inherit"}}/>
+              </div>
+            </div>
+            <div style={{padding:"12px 20px",borderTop:"1px solid #f3f4f6",display:"flex",gap:10,justifyContent:"flex-end",background:"#fafafa"}}>
+              <button onClick={()=>setModal(false)} style={{background:"transparent",border:"1px solid #d1d5db",color:"#374151",borderRadius:7,padding:"8px 16px",fontSize:12,fontWeight:600,cursor:"pointer"}}>Cancelar</button>
+              <button onClick={enviarReclamacion} disabled={!form.desc.trim()}
+                style={{background:form.desc.trim()?"#dc2626":"#94a3b8",color:"#fff",border:"none",borderRadius:7,padding:"8px 20px",fontSize:12,fontWeight:700,cursor:form.desc.trim()?"pointer":"not-allowed"}}>
+                🚨 Enviar reclamación
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const NAV_PORTAL = [
   {id:"dashboard",  label:"Dashboard",        icon:"🏠"},
   {id:"ofs",        label:"Mis OFs",           icon:"🏭"},
   {id:"homs",       label:"Homologaciones",    icon:"🔬"},
   {id:"ofertas",    label:"Ofertas",           icon:"📄"},
   {id:"albaranes",  label:"Albaranes",         icon:"📦"},
-  {id:"certificados",label:"Certificados",     icon:"🏅"},
+  {id:"calidad",     label:"Calidad",           icon:"🏅"},
 ];
 
 export default function PortalCliente({ onSalir }){
@@ -590,7 +786,7 @@ export default function PortalCliente({ onSalir }){
 
   const pendBadge = {
     ofertas:    ofertas.filter(o=>o.estado==="enviada").length,
-    certificados:certs.filter(c=>c.estado==="pendiente").length,
+    calidad:certs.filter(c=>c.estado==="pendiente").length,
     homs:       homs.filter(h=>h.estado!=="homologado"&&h.estado!=="rechazado").length,
   };
 
@@ -656,7 +852,7 @@ export default function PortalCliente({ onSalir }){
         {seccion==="homs"        &&<PortalHomologaciones homs={homs}/>}
         {seccion==="ofertas"     &&<PortalOfertas ofertas={ofertas} setOfertas={setOfertas}/>}
         {seccion==="albaranes"   &&<PortalAlbaranes albaranes={albs}/>}
-        {seccion==="certificados"&&<PortalCertificados certs={certs}/>}
+        {seccion==="calidad"&&<PortalCalidad certs={certs}/>}
       </div>
     </div>
   );
