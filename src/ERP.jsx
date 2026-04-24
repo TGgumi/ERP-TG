@@ -13,6 +13,7 @@ import Mantenimiento  from "./modulos/Mantenimiento";
 import Financiero     from "./modulos/Financiero";
 import VistaOperario  from "./modulos/VistaOperario";
 import Logistica      from "./modulos/Logistica";
+import PortalCliente  from "./modulos/PortalCliente";
 
 export const ERPContext = createContext(null);
 
@@ -483,6 +484,7 @@ export function MisMejoras({ mejoras, autor }) {
 // ═══════════════════════════════════════════════════════════════════
 export default function ERP() {
   const [dept, setDept] = useState("gerencia");
+  const [portal, setPortal] = useState(false);
   const [ofs,  setOfs]  = useState(OFS_INIT);
   const [ncs,  setNcs]  = useState(NCS_INIT);
   const [mant, setMant] = useState(MANT_INIT);
@@ -503,6 +505,8 @@ export default function ERP() {
   const getBadge = (d) => ({ produccion:oAc, calidad:ncsAb, mantenimiento:mVhoy, laboratorio:nok, gerencia:mejorasPend }[d] || 0);
   const ctx = { ofs, setOfs, ncs, setNcs, mant, setMant, ctrl, setCtrl, bloqueadas, setBloqueadas, mejoras, setMejoras, fichas, setFichas, mVhoy, oAc, ncsAb };
   const { comp: Modulo, titulo } = MODULOS[dept] || MODULOS.gerencia;
+
+  if(portal) return <PortalCliente onSalir={()=>setPortal(false)}/>;
 
   return (
     <ERPContext.Provider value={ctx}>
