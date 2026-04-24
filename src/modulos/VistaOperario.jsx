@@ -4,43 +4,82 @@ import { ERPContext } from "../ERP";
 
 // ─── OFs RAW ─────────────────────────────────────────────────────
 const OFS_RAW = [
-  {of:"51571",  ref:"28825261 T44",       cliente:"TUBSA AUTOMOCION",     proceso:"FOSFATADO + GRANALLADO + 2xKL120 + 2xNEGRO GZ", kg:1232,fentrega:"2026-03-08",kgCesta:{"GR-02":100,"TWIN44":40,"PRE-02":100}},
-  {of:"51571b", ref:"28825261 T44",       cliente:"TUBSA AUTOMOCION",     proceso:"FOSFATADO + GRANALLADO + 2xKL120 + 2xNEGRO GZ", kg:310, fentrega:"2026-03-08",kgCesta:{"GR-02":100,"TWIN44":40,"PRE-02":100}},
-  {of:"51815",  ref:"28855252010-AC T44", cliente:"TUBSA AUTOMOCION",     proceso:"FOSFATADO + GRANALLADO + 2xKL120 + 2xNEGRO GZ", kg:664, fentrega:"2026-03-10",kgCesta:{"TWIN44":45,"PRE-02":100,"GR-02":100}},
-  {of:"51816",  ref:"28825261 T44",       cliente:"TUBSA AUTOMOCION",     proceso:"FOSFATADO + GRANALLADO + 2xKL120 + 2xNEGRO GZ", kg:1232,fentrega:"2026-03-10",kgCesta:{"GR-02":100,"TWIN44":40,"PRE-02":100}},
-  {of:"51817",  ref:"28855252010-AC T44", cliente:"TUBSA AUTOMOCION",     proceso:"FOSFATADO + GRANALLADO + 2xKL120 + 2xNEGRO GZ", kg:1660,fentrega:"2026-03-08",kgCesta:{"TWIN44":45,"PRE-02":100,"GR-02":100}},
-  {of:"51720",  ref:"28855252-T44",       cliente:"TUBSA AUTOMOCION",     proceso:"FOSFATADO + 3xKL100 + 1xVH302",                 kg:87,  fentrega:"2026-03-08",kgCesta:{"PRE-02":30,"TWIN44":40}},
-  {of:"51721",  ref:"3117500.44",         cliente:"ELAY LAN S.L.U.",      proceso:"FOSFATADO + 2xKL100 + 1xPLATA",                 kg:329, fentrega:"2026-03-15",kgCesta:{"TWIN44":80,"PRE-02":100}},
-  {of:"51863",  ref:"151465002-64125 T44",cliente:"A.RAYMOND TECNIACERO", proceso:"FOSFATADO + GRANALLADO + 1xKL100 + 1xPLATA",   kg:478, fentrega:"2026-03-14",kgCesta:{"PRE-02":100,"TWIN44":80}},
-  {of:"51863b", ref:"151465002-64125 T44",cliente:"A.RAYMOND TECNIACERO", proceso:"FOSFATADO + GRANALLADO + 1xKL100 + 1xPLATA",   kg:479, fentrega:"2026-03-14",kgCesta:{"PRE-02":100,"TWIN44":80}},
-  {of:"51986",  ref:"8100484951",         cliente:"TSF-NAVARRA TEC.SOLD.",proceso:"FOSFATADO + 3xKL100 + 1xPLATA",                kg:203, fentrega:"2026-03-31",kgCesta:{"PRE-02":100,"TWIN02":60}},
-  {of:"51988",  ref:"810G340869-T44",     cliente:"TSF-NAVARRA TEC.SOLD.",proceso:"FOSFATADO + GRANALLADO + 2xKL100 + 2xNEGRO GZ",kg:768, fentrega:"2026-03-21",kgCesta:{"PRE-02":100,"GR-02":100,"TWIN44":80}},
-  {of:"51988b", ref:"810G340869-T44",     cliente:"TSF-NAVARRA TEC.SOLD.",proceso:"FOSFATADO + GRANALLADO + 2xKL100 + 2xNEGRO GZ",kg:384, fentrega:"2026-03-21",kgCesta:{"PRE-02":100,"GR-02":100,"TWIN44":80}},
-  {of:"52004",  ref:"151465002 T44",      cliente:"A.RAYMOND TECNIACERO", proceso:"FOSFATADO + GRANALLADO + 1xKL100 + 1xPLATA",   kg:462, fentrega:"2026-03-23",kgCesta:{"PRE-02":100,"TWIN44":80}},
-  {of:"52004b", ref:"151465002 T44",      cliente:"A.RAYMOND TECNIACERO", proceso:"FOSFATADO + GRANALLADO + 1xKL100 + 1xPLATA",   kg:1852,fentrega:"2026-03-23",kgCesta:{"PRE-02":100,"TWIN44":80}},
-  {of:"51663",  ref:"3117100.44",         cliente:"ELAY LAN S.L.U.",      proceso:"FOSFATADO + GRANALLADO + 2xNEGRO GZ",           kg:90,  fentrega:"2026-03-12",kgCesta:{"TWIN02":80,"PRE-02":100,"GR-02":100}},
-  {of:"51928",  ref:"3117100.44",         cliente:"ELAY LAN S.L.U.",      proceso:"FOSFATADO + GRANALLADO + 2xNEGRO GZ",           kg:1472,fentrega:"2026-03-17",kgCesta:{"TWIN02":80,"PRE-02":100,"GR-02":100}},
-  {of:"51929",  ref:"28825261-GR T44",    cliente:"TUBSA AUTOMOCION",     proceso:"GRANALLADO + 1xKL120 + 2xPLATA",                kg:629, fentrega:"2026-03-08",kgCesta:{"GR-02":80,"TWIN44":60}},
-  {of:"51930",  ref:"28825261-BC T44",    cliente:"TUBSA AUTOMOCION",     proceso:"FOSFATADO + 2xKL120 + 3xNEGRO GZ",             kg:439, fentrega:"2026-03-28",kgCesta:{"PRE-02":100,"TWIN44":80}},
-  {of:"51796",  ref:"151465002-64125",    cliente:"A.RAYMOND TECNIACERO", proceso:"FOSFATADO + 2xKL100",                           kg:277, fentrega:"2026-03-12",kgCesta:{"PRE-02":60,"TWIN44":45}},
+  {of:"51571",  ref:"28825261 T44",       cliente:"TUBSA AUTOMOCION",     proceso:"FOSFATADO + GRANALLADO + 2xKL120 + 2xNEGRO GZ", kg:1232,fentrega:"2026-03-08",kgCesta:{"GR-02":100,"TWIN44":40,"PRE-02":100},nPed:"1571"},
+  {of:"51571b", ref:"28825261 T44",       cliente:"TUBSA AUTOMOCION",     proceso:"FOSFATADO + GRANALLADO + 2xKL120 + 2xNEGRO GZ", kg:310, fentrega:"2026-03-08",kgCesta:{"GR-02":100,"TWIN44":40,"PRE-02":100},nPed:"1571"},
+  {of:"51815",  ref:"28855252010-AC T44", cliente:"TUBSA AUTOMOCION",     proceso:"FOSFATADO + GRANALLADO + 2xKL120 + 2xNEGRO GZ", kg:664, fentrega:"2026-03-10",kgCesta:{"TWIN44":45,"PRE-02":100,"GR-02":100},nPed:"1815"},
+  {of:"51816",  ref:"28825261 T44",       cliente:"TUBSA AUTOMOCION",     proceso:"FOSFATADO + GRANALLADO + 2xKL120 + 2xNEGRO GZ", kg:1232,fentrega:"2026-03-10",kgCesta:{"GR-02":100,"TWIN44":40,"PRE-02":100},nPed:"1816"},
+  {of:"51817",  ref:"28855252010-AC T44", cliente:"TUBSA AUTOMOCION",     proceso:"FOSFATADO + GRANALLADO + 2xKL120 + 2xNEGRO GZ", kg:1660,fentrega:"2026-03-08",kgCesta:{"TWIN44":45,"PRE-02":100,"GR-02":100},nPed:"1817"},
+  {of:"51720",  ref:"28855252-T44",       cliente:"TUBSA AUTOMOCION",     proceso:"FOSFATADO + 3xKL100 + 1xVH302",                 kg:87,  fentrega:"2026-03-08",kgCesta:{"PRE-02":30,"TWIN44":40},nPed:"1720"},
+  {of:"51721",  ref:"3117500.44",         cliente:"ELAY LAN S.L.U.",      proceso:"FOSFATADO + 2xKL100 + 1xPLATA",                 kg:329, fentrega:"2026-03-15",kgCesta:{"TWIN44":80,"PRE-02":100},nPed:"1721"},
+  {of:"51863",  ref:"151465002-64125 T44",cliente:"A.RAYMOND TECNIACERO", proceso:"FOSFATADO + GRANALLADO + 1xKL100 + 1xPLATA",   kg:478, fentrega:"2026-03-14",kgCesta:{"PRE-02":100,"TWIN44":80},nPed:"1863"},
+  {of:"51863b", ref:"151465002-64125 T44",cliente:"A.RAYMOND TECNIACERO", proceso:"FOSFATADO + GRANALLADO + 1xKL100 + 1xPLATA",   kg:479, fentrega:"2026-03-14",kgCesta:{"PRE-02":100,"TWIN44":80},nPed:"1863"},
+  {of:"51986",  ref:"8100484951",         cliente:"TSF-NAVARRA TEC.SOLD.",proceso:"FOSFATADO + 3xKL100 + 1xPLATA",                kg:203, fentrega:"2026-03-31",kgCesta:{"PRE-02":100,"TWIN02":60},nPed:"1986"},
+  {of:"51988",  ref:"810G340869-T44",     cliente:"TSF-NAVARRA TEC.SOLD.",proceso:"FOSFATADO + GRANALLADO + 2xKL100 + 2xNEGRO GZ",kg:768, fentrega:"2026-03-21",kgCesta:{"PRE-02":100,"GR-02":100,"TWIN44":80},nPed:"1988"},
+  {of:"51988b", ref:"810G340869-T44",     cliente:"TSF-NAVARRA TEC.SOLD.",proceso:"FOSFATADO + GRANALLADO + 2xKL100 + 2xNEGRO GZ",kg:384, fentrega:"2026-03-21",kgCesta:{"PRE-02":100,"GR-02":100,"TWIN44":80},nPed:"1988"},
+  {of:"52004",  ref:"151465002 T44",      cliente:"A.RAYMOND TECNIACERO", proceso:"FOSFATADO + GRANALLADO + 1xKL100 + 1xPLATA",   kg:462, fentrega:"2026-03-23",kgCesta:{"PRE-02":100,"TWIN44":80},nPed:"2004"},
+  {of:"52004b", ref:"151465002 T44",      cliente:"A.RAYMOND TECNIACERO", proceso:"FOSFATADO + GRANALLADO + 1xKL100 + 1xPLATA",   kg:1852,fentrega:"2026-03-23",kgCesta:{"PRE-02":100,"TWIN44":80},nPed:"2004"},
+  {of:"51663",  ref:"3117100.44",         cliente:"ELAY LAN S.L.U.",      proceso:"FOSFATADO + GRANALLADO + 2xNEGRO GZ",           kg:90,  fentrega:"2026-03-12",kgCesta:{"TWIN02":80,"PRE-02":100,"GR-02":100},nPed:"1663"},
+  {of:"51928",  ref:"3117100.44",         cliente:"ELAY LAN S.L.U.",      proceso:"FOSFATADO + GRANALLADO + 2xNEGRO GZ",           kg:1472,fentrega:"2026-03-17",kgCesta:{"TWIN02":80,"PRE-02":100,"GR-02":100},nPed:"1928"},
+  {of:"51929",  ref:"28825261-GR T44",    cliente:"TUBSA AUTOMOCION",     proceso:"GRANALLADO + 1xKL120 + 2xPLATA",                kg:629, fentrega:"2026-03-08",kgCesta:{"GR-02":80,"TWIN44":60},nPed:"1929"},
+  {of:"51930",  ref:"28825261-BC T44",    cliente:"TUBSA AUTOMOCION",     proceso:"FOSFATADO + 2xKL120 + 3xNEGRO GZ",             kg:439, fentrega:"2026-03-28",kgCesta:{"PRE-02":100,"TWIN44":80},nPed:"1930"},
+  {of:"51796",  ref:"151465002-64125",    cliente:"A.RAYMOND TECNIACERO", proceso:"FOSFATADO + 2xKL100",                           kg:277, fentrega:"2026-03-12",kgCesta:{"PRE-02":60,"TWIN44":45},nPed:"1796"},
   // MN
-  {of:"51601",  ref:"CLIP MANETA RO",     cliente:"ITW ESPAÑA",           proceso:"FOSFATADO + GRANALLADO + 2xNEGRO GZ",           kg:800, fentrega:"2026-03-22",kgCesta:{"MN-01":40,"PRE-01":100,"GR-01":100}},
-  {of:"51602",  ref:"306 CLIP DT",        cliente:"SINARD S.A.",           proceso:"FOSFATADO + GRANALLADO + 2xNEGRO GZ",           kg:500, fentrega:"2026-03-25",kgCesta:{"MN-01":50,"PRE-01":100,"GR-01":100}},
-  {of:"51603",  ref:"VRH-6T 210",         cliente:"SINARD S.A.",           proceso:"FOSFATADO + GRANALLADO + 1xVH302",             kg:320, fentrega:"2026-03-20",kgCesta:{"MN-01":60,"PRE-01":100}},
-  {of:"51187",  ref:"CLIP",               cliente:"TORRES GUMA S.L.",      proceso:"FOSFATADO + GRANALLADO + 3xKL100",             kg:3000,fentrega:"2026-02-14",kgCesta:{"MN-01":30}},
+  {of:"51601",  ref:"CLIP MANETA RO",     cliente:"ITW ESPAÑA",           proceso:"FOSFATADO + GRANALLADO + 2xNEGRO GZ",           kg:800, fentrega:"2026-03-22",kgCesta:{"MN-01":40,"PRE-01":100,"GR-01":100},nPed:"1601"},
+  {of:"51602",  ref:"306 CLIP DT",        cliente:"SINARD S.A.",           proceso:"FOSFATADO + GRANALLADO + 2xNEGRO GZ",           kg:500, fentrega:"2026-03-25",kgCesta:{"MN-01":50,"PRE-01":100,"GR-01":100},nPed:"1602"},
+  {of:"51603",  ref:"VRH-6T 210",         cliente:"SINARD S.A.",           proceso:"FOSFATADO + GRANALLADO + 1xVH302",             kg:320, fentrega:"2026-03-20",kgCesta:{"MN-01":60,"PRE-01":100},nPed:"1603"},
+  {of:"51187",  ref:"CLIP",               cliente:"TORRES GUMA S.L.",      proceso:"FOSFATADO + GRANALLADO + 3xKL100",             kg:3000,fentrega:"2026-02-14",kgCesta:{"MN-01":30},nPed:"1187"},
   // Bastidor
-  {of:"51198",  ref:"810G340869",         cliente:"TSF-NAVARRA TEC.SOLD.",proceso:"FOSFATADO + GRANALLADO + 2xKL100",             kg:360, fentrega:"2026-02-17",kgCesta:{"GR-BAST":2,"DE02":100,"MN Bastid":100}},
-  {of:"51229",  ref:"810A620663",         cliente:"TSF-NAVARRA TEC.SOLD.",proceso:"FOSFATADO + GRANALLADO + 2xKL100",             kg:225, fentrega:"2026-02-18",kgCesta:{"GR-BAST":2,"DE02":100,"MN Bastid":100}},
-  {of:"51927",  ref:"BAST-3xKL120",       cliente:"MATZ-ERREKA S.COOP.",  proceso:"FOSFATADO + GRANALLADO + 3xKL120 + 1xNEGRO GZ",kg:729, fentrega:"2026-03-17",kgCesta:{"MN Bastid":100,"GR-BAST":7}},
-  {of:"51849",  ref:"BASTIDOR-01",        cliente:"PENDIENTE",             proceso:"FOSFATADO + GRANALLADO",                       kg:753, fentrega:"2026-03-24",kgCesta:{"MN Bastid":15,"GR-BAST":10}},
+  {of:"51198",  ref:"810G340869",         cliente:"TSF-NAVARRA TEC.SOLD.",proceso:"FOSFATADO + GRANALLADO + 2xKL100",             kg:360, fentrega:"2026-02-17",kgCesta:{"GR-BAST":2,"DE02":100,"MN Bastid":100},nPed:"1198"},
+  {of:"51229",  ref:"810A620663",         cliente:"TSF-NAVARRA TEC.SOLD.",proceso:"FOSFATADO + GRANALLADO + 2xKL100",             kg:225, fentrega:"2026-02-18",kgCesta:{"GR-BAST":2,"DE02":100,"MN Bastid":100},nPed:"1229"},
+  {of:"51927",  ref:"BAST-3xKL120",       cliente:"MATZ-ERREKA S.COOP.",  proceso:"FOSFATADO + GRANALLADO + 3xKL120 + 1xNEGRO GZ",kg:729, fentrega:"2026-03-17",kgCesta:{"MN Bastid":100,"GR-BAST":7},nPed:"1927"},
+  {of:"51849",  ref:"BASTIDOR-01",        cliente:"PENDIENTE",             proceso:"FOSFATADO + GRANALLADO",                       kg:753, fentrega:"2026-03-24",kgCesta:{"MN Bastid":15,"GR-BAST":10},nPed:"1849"},
   // DC02
-  {of:"51987",  ref:"8300179895",         cliente:"TSF-NAVARRA TEC.SOLD.",proceso:"FOSFATADO + DESACEITADO",                      kg:867, fentrega:"2026-03-21",kgCesta:{"DC02":160}},
-  {of:"51987b", ref:"8300179895",         cliente:"TSF-NAVARRA TEC.SOLD.",proceso:"FOSFATADO + DESACEITADO",                      kg:2604,fentrega:"2026-03-21",kgCesta:{"DC02":160}},
+  {of:"51987",  ref:"8300179895",         cliente:"TSF-NAVARRA TEC.SOLD.",proceso:"FOSFATADO + DESACEITADO",                      kg:867, fentrega:"2026-03-21",kgCesta:{"DC02":160},nPed:"1987"},
+  {of:"51987b", ref:"8300179895",         cliente:"TSF-NAVARRA TEC.SOLD.",proceso:"FOSFATADO + DESACEITADO",                      kg:2604,fentrega:"2026-03-21",kgCesta:{"DC02":160},nPed:"1987"},
 ];
 
 // ─── MOTOR HORNOS ─────────────────────────────────────────────────
 const HOY=new Date("2026-03-20");
 const HMIN=34,HMAX=45;
+
+// ─── CODE 39 ─────────────────────────────────────────────────────
+const C39_MAP = {
+  '0':'000110100','1':'100100001','2':'001100001','3':'101100000',
+  '4':'000110001','5':'100110000','6':'001110000','7':'000100101',
+  '8':'100100100','9':'001100100','A':'100001001','B':'001001001',
+  'C':'101001000','D':'000011001','E':'100011000','F':'001011000',
+  'G':'000001101','H':'100001100','I':'001001100','J':'000011100',
+  'K':'100000011','L':'001000011','M':'101000010','N':'000010011',
+  'O':'100010010','P':'001010010','Q':'000000111','R':'100000110',
+  'S':'001000110','T':'000010110','U':'110000001','V':'011000001',
+  'W':'111000000','X':'010010001','Y':'110010000','Z':'011010000',
+  '-':'000100011','.':'100100010',' ':'011000010','$':'010101000',
+  '/':'010100010','+':'010001010','%':'000101010','*':'010010100',
+};
+function Barcode39({text, height=40, narrow=1.5, wide=4, quiet=8}){
+  const full='*'+text.toUpperCase()+'*';
+  const invalid=[...full].find(c=>!C39_MAP[c]);
+  if(invalid) return null;
+  let x=quiet;
+  const rects=[];
+  [...full].forEach((ch,ci)=>{
+    const pat=C39_MAP[ch];
+    for(let i=0;i<9;i++){
+      const w=pat[i]==='1'?wide:narrow;
+      if(i%2===0) rects.push({x,w});
+      x+=w;
+    }
+    if(ci<full.length-1) x+=narrow;
+  });
+  const totalW=x+quiet;
+  return(
+    <svg width={totalW} height={height+14} style={{display:"block",maxWidth:"100%"}}>
+      {rects.map((r,i)=><rect key={i} x={r.x} y={0} width={r.w} height={height} fill="#000"/>)}
+      <text x={totalW/2} y={height+11} textAnchor="middle" fontSize="8" fontFamily="monospace" fill="#374151" letterSpacing="1">{text}</text>
+    </svg>
+  );
+}
+
 const MPC={"MN-01":4.5,"TWIN44":4.5,"TWIN02":4.5,"PRE-02":5,"GR-02":5,"PRE-01":5,"GR-01":5,"DE02":20,"DB02":20,"GR-BAST":15,"MN Bastid":12,"DC02":5};
 
 // Orden global del proceso — de izquierda a derecha
@@ -167,6 +206,11 @@ function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,confirma
         <div style={{fontSize:10.5,color:s.tx,opacity:.7,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:220}}>{o.proceso}</div>
         <div style={{fontSize:10,color:s.tx,opacity:.55,marginTop:1}}>ref: {o.ref}</div>
         {(()=>{const fot=(fichas||[]).find(f=>f.ref_cli===o.ref||f.desc===o.ref)?.foto;return fot?<img src={fot} alt={o.ref} style={{marginTop:5,width:48,height:48,objectFit:"cover",borderRadius:6,border:"1px solid #e2e8f0"}}/>:null;})()}
+        {o.nPed&&o.cli!=null&&(
+          <div style={{marginTop:6,background:"#fff",borderRadius:6,border:"1px solid #e2e8f0",padding:"5px 8px",display:"inline-block"}}>
+            <Barcode39 text={`OF-${String(o.cli||"000").padStart(3,"0")}${o.nPed}`}/>
+          </div>
+        )}
         {/* Ruta de proceso */}
         <div style={{display:"flex",gap:3,marginTop:4,flexWrap:"wrap",alignItems:"center"}}>
           {RUTA_ORDEN.filter(m=>o.kgCesta[m]).map((m,i,arr)=>{
@@ -1184,7 +1228,7 @@ function BuzonMejoras(){
 
 // ─── MÓDULO PRINCIPAL ─────────────────────────────────────────────
 export default function VistaOperario(){
-  const {ncs,setNcs,ctrl,setCtrl,bloqueadas,setBloqueadas,fichas}=useContext(ERPContext);
+  const {ncs,setNcs,ctrl,setCtrl,bloqueadas,setBloqueadas,fichas,ofs}=useContext(ERPContext);
   const [maqActiva,setMaqActiva]=useState("TWIN44");
   const [ests,setEsts]=useState({"PRE-01":"Produciendo","PRE-02":"Produciendo","GR-01":"Produciendo","GR-02":"Espera","TWIN44":"Produciendo","TWIN02":"Ajuste","MN-01":"Produciendo","DC02":"Produciendo","DE02":"Espera","DB02":"Limpieza","GR-BAST":"Produciendo","MN Bastid":"Produciendo","MALLADO":"Espera"});
   const [mNC,setMNC]=useState(null);
@@ -1197,7 +1241,8 @@ export default function VistaOperario(){
 
   const planes=useMemo(()=>{
     const r={};
-    MAQUINAS_LIST.forEach(m=>{r[m.id]=planificar(OFS_RAW,m.id);});
+    const allOfs = [...OFS_RAW, ...(ofs||[]).map(o=>({...o,kgCesta:{[o.maq]:o.kg}}))];  
+    MAQUINAS_LIST.forEach(m=>{r[m.id]=planificar(allOfs,m.id);});
     return r;
   },[]);
 
