@@ -499,6 +499,271 @@ function PortalCertificados({ certs }){
   );
 }
 
+
+// ─── CALCULADORA PORTAL ────────────────────────────────────────────
+const NORMATIVAS_COMUNES = [
+  {value:"",          label:"Sin normativa específica"},
+  {value:"ISO 10683", label:"ISO 10683 — Zinc lamelar"},
+  {value:"DIN 50979", label:"DIN 50979 — Zinc lamelar"},
+  {value:"ISO 9227",  label:"ISO 9227 — Ensayo NSS"},
+  {value:"IATF 16949",label:"IATF 16949 — Automoción"},
+  {value:"Geomet",    label:"Geomet® (Zinc lamelar)"},
+  {value:"Dacromet",  label:"Dacromet® (Zinc lamelar)"},
+  {value:"Otra",      label:"Otra (especificar en notas)"},
+];
+
+function PortalCalculadora({ cliente }){
+  const API_KEY = import.meta.env.VITE_ANTHROPIC_KEY;
+  const [ancho,setAncho]   = useState("");
+  const [alto,setAlto]     = useState("");
+  const [largo,setLargo]   = useState("");
+  const [peso,setPeso]     = useState("");
+  const [nss,setNss]       = useState("");
+  const [norma,setNorma]   = useState("");
+  const [notas,setNotas]   = useState("");
+  const [loading,setLoading] = useState(false);
+  const [error,setError]   = useState("");
+  const [result,setResult] = useState(null);
+  const [solicitar,setSolicitar] = useState(false);
+  const [solEnviada,setSolEnviada] = useState(false);
+
+  async function calcular(){
+    if(!peso||!ancho||!alto||!largo){ setError("Completa al menos peso y dimensiones."); return; }
+    setLoading(true); setError(""); setResult(null);
+
+    const prompt = `Eres el motor de cálculo de precios de Torres Gumà (tratamiento superficial, zinc lamelar, granallado).
+
+Datos de la pieza del cliente:
+- Dimensiones: ${ancho}mm x ${alto}mm x ${largo}mm
+- Peso: ${peso} g
+- Horas resistencia NSS requeridas: ${nss||"no especificado"}
+- Normativa: ${norma||"ninguna"}
+- Notas: ${notas||"ninguna"}
+
+Calcula y recomienda:
+1. El proceso más adecuado según normativa y NSS (zinc lamelar KL100/KL120, fosfatado, granallado, etc.)
+2. Kg estimados por cesta según dimensiones y peso
+3. Precio estimado en €/kg para diferentes volúmenes de lote
+4. Si hay normativa específica, indica exactamente qué proceso cumple con ella
+
+Responde SOLO JSON sin markdown:
+{
+  "proceso_recomendado": "descripción corta del proceso",
+  "proceso_detalle": "explicación del por qué ese proceso",
+  "cumple_normativa": true o false,
+  "kg_por_cesta": número estimado,
+  "superficie_cm2": número,
+  "precios": [
+    {"lote": "80-249 kg",  "precio_kg": número, "precio_ud": número},
+    {"lote": "250-999 kg", "precio_kg": número, "precio_ud": número},
+    {"lote": "1000+ kg",   "precio_kg": número, "precio_ud": número}
+  ],
+  "nss_alcanzable": número de horas NSS estimadas con el proceso,
+  "observaciones": "texto corto con recomendaciones o advertencias"
+}`;
+
+    try{
+      const resp = await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":API_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:800,messages:[{role:"user",content:prompt}]})
+      });
+      const data = await resp.json();
+      if(data.error) throw new Error(data.error.message);
+      const txt = data.content?.find(b=>b.type==="text")?.text||"";
+      setResult(JSON.parse(txt.replace(/```json|```/g,"").trim()));
+    }catch(e){ setError("Error al calcular: "+e.message); }
+    finally{ setLoading(false); }
+  }
+
+  const sInp = {border:"1.5px solid #e5e7eb",borderRadius:8,padding:"9px 11px",fontSize:13,width:"100%",boxSizing:"border-box",outline:"none",color:"#111827",transition:"border-color .15s"};
+  const sLbl = {fontSize:11,fontWeight:700,color:"#374151",display:"block",marginBottom:5};
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      <SectionTitle icon="🧮" title="Calculadora de costes" subtitle="Introduce los datos de tu pieza y obtén una estimación de precio al momento"/>
+
+      {/* Formulario */}
+      <Card>
+        <div style={{display:"flex",flexDirection:"column",gap:14}}>
+
+          {/* Dimensiones */}
+          <div>
+            <div style={{fontSize:12,fontWeight:700,color:"#374151",marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
+              <span style={{width:20,height:20,background:"#1e3a5f",borderRadius:4,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#fff",fontWeight:700}}>1</span>
+              Dimensiones y peso de la pieza
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10}}>
+              {[["Ancho (mm)",ancho,setAncho],["Alto (mm)",alto,setAlto],["Largo (mm)",largo,setLargo],["Peso (g)",peso,setPeso]].map(([l,v,fn])=>(
+                <div key={l}>
+                  <label style={sLbl}>{l} *</label>
+                  <input type="number" value={v} onChange={e=>fn(e.target.value)} style={sInp} placeholder="0"/>
+                </div>
+              ))}
+            </div>
+            {peso&&ancho&&alto&&largo&&(
+              <div style={{marginTop:8,fontSize:11,color:"#6b7280",background:"#f8fafc",borderRadius:6,padding:"6px 10px"}}>
+                📐 Volumen estimado: <strong>{((parseFloat(ancho)*parseFloat(alto)*parseFloat(largo))/1000).toFixed(1)} cm³</strong> ·
+                Peso pieza: <strong>{(parseFloat(peso)/1000).toFixed(4)} kg</strong>
+              </div>
+            )}
+          </div>
+
+          {/* NSS + Normativa */}
+          <div>
+            <div style={{fontSize:12,fontWeight:700,color:"#374151",marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
+              <span style={{width:20,height:20,background:"#1e3a5f",borderRadius:4,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#fff",fontWeight:700}}>2</span>
+              Requisitos de resistencia y normativa
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              <div>
+                <label style={sLbl}>Horas resistencia NSS (cámara niebla salina)</label>
+                <div style={{position:"relative"}}>
+                  <input type="number" value={nss} onChange={e=>setNss(e.target.value)}
+                    style={{...sInp,paddingRight:40}} placeholder="ej. 480"/>
+                  <span style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",fontSize:11,color:"#9ca3af",pointerEvents:"none"}}>h</span>
+                </div>
+                {nss&&(
+                  <div style={{marginTop:5,fontSize:10,color:parseInt(nss)>=1000?"#166534":parseInt(nss)>=500?"#0891b2":"#b45309",fontWeight:600}}>
+                    {parseInt(nss)>=1000?"🟢 Alta resistencia":""}
+                    {parseInt(nss)>=500&&parseInt(nss)<1000?"🔵 Resistencia media-alta":""}
+                    {parseInt(nss)<500&&nss?"🟡 Resistencia estándar":""}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label style={sLbl}>Normativa aplicable</label>
+                <select value={norma} onChange={e=>setNorma(e.target.value)} style={sInp}>
+                  {NORMATIVAS_COMUNES.map(n=><option key={n.value} value={n.value}>{n.label}</option>)}
+                </select>
+                {norma&&norma!=="Otra"&&(
+                  <div style={{marginTop:5,fontSize:10,color:"#1d4ed8",fontWeight:600,display:"flex",alignItems:"center",gap:4}}>
+                    ✦ El proceso se sugerirá según esta normativa
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Notas */}
+          <div>
+            <div style={{fontSize:12,fontWeight:700,color:"#374151",marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
+              <span style={{width:20,height:20,background:"#1e3a5f",borderRadius:4,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#fff",fontWeight:700}}>3</span>
+              Información adicional (opcional)
+            </div>
+            <textarea value={notas} onChange={e=>setNotas(e.target.value)} rows={2}
+              placeholder="Material, acabado especial, destino de la pieza, cantidad prevista anual..."
+              style={{...sInp,resize:"vertical",fontFamily:"inherit"}}/>
+          </div>
+
+          {/* Botón */}
+          {error&&<div style={{fontSize:12,color:"#dc2626",fontWeight:600}}>{error}</div>}
+          <button onClick={calcular} disabled={loading||!peso||!ancho||!alto||!largo}
+            style={{background:loading||!peso||!ancho||!alto||!largo?"#94a3b8":"#1e3a5f",
+              color:"#fff",border:"none",borderRadius:8,padding:"12px",fontSize:13,fontWeight:700,
+              cursor:loading||!peso||!ancho||!alto||!largo?"not-allowed":"pointer"}}>
+            {loading?"⏳ Calculando precio...":"⚡ Calcular precio estimado"}
+          </button>
+        </div>
+      </Card>
+
+      {/* Resultado */}
+      {result&&(
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+
+          {/* Proceso recomendado */}
+          <Card style={{background:"linear-gradient(135deg,#1e3a5f,#2563eb)",color:"#fff",border:"none"}}>
+            <div style={{fontSize:11,fontWeight:700,opacity:.7,textTransform:"uppercase",letterSpacing:".06em",marginBottom:6}}>
+              ✦ Proceso recomendado{norma?` — cumple ${norma}`:""}
+            </div>
+            <div style={{fontSize:18,fontWeight:700,marginBottom:4}}>{result.proceso_recomendado}</div>
+            <div style={{fontSize:12,opacity:.85,lineHeight:1.5}}>{result.proceso_detalle}</div>
+            <div style={{display:"flex",gap:10,marginTop:10,flexWrap:"wrap"}}>
+              {result.kg_por_cesta&&(
+                <div style={{background:"rgba(255,255,255,.15)",borderRadius:6,padding:"6px 12px",fontSize:11}}>
+                  📦 ~{result.kg_por_cesta} kg/cesta
+                </div>
+              )}
+              {result.superficie_cm2&&(
+                <div style={{background:"rgba(255,255,255,.15)",borderRadius:6,padding:"6px 12px",fontSize:11}}>
+                  📐 ~{result.superficie_cm2} cm²
+                </div>
+              )}
+              {result.nss_alcanzable&&(
+                <div style={{background:"rgba(255,255,255,.15)",borderRadius:6,padding:"6px 12px",fontSize:11}}>
+                  🧪 NSS estimado: ~{result.nss_alcanzable}h
+                </div>
+              )}
+              {result.cumple_normativa&&norma&&(
+                <div style={{background:"rgba(34,197,94,.3)",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700}}>
+                  ✓ Cumple {norma}
+                </div>
+              )}
+            </div>
+          </Card>
+
+          {/* Tabla precios */}
+          {result.precios&&result.precios.length>0&&(
+            <Card>
+              <div style={{fontSize:13,fontWeight:700,color:"#111827",marginBottom:12}}>💶 Precios estimados</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10}}>
+                {result.precios.map((p,i)=>(
+                  <div key={i} style={{background:i===0?"#f8fafc":i===1?"#eff6ff":"#f0fdf4",borderRadius:10,padding:"14px 16px",border:`1px solid ${i===0?"#e5e7eb":i===1?"#bfdbfe":"#86efac"}`}}>
+                    <div style={{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",marginBottom:6}}>{p.lote}</div>
+                    <div style={{fontSize:22,fontWeight:700,color:i===0?"#374151":i===1?"#1d4ed8":"#166534"}}>
+                      {Number(p.precio_kg).toFixed(4)} <span style={{fontSize:11}}>€/kg</span>
+                    </div>
+                    {p.precio_ud&&(
+                      <div style={{fontSize:11,color:"#6b7280",marginTop:3}}>
+                        ~{Number(p.precio_ud).toFixed(4)} €/ud
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div style={{marginTop:10,fontSize:10,color:"#9ca3af",fontStyle:"italic"}}>
+                * Precios orientativos. La oferta definitiva puede variar según condiciones de entrega, acabado y volumen anual.
+              </div>
+            </Card>
+          )}
+
+          {/* Observaciones */}
+          {result.observaciones&&(
+            <Card style={{background:"#fffbeb",border:"1px solid #fde68a"}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#b45309",textTransform:"uppercase",letterSpacing:".05em",marginBottom:4}}>💡 Observaciones</div>
+              <div style={{fontSize:12,color:"#78350f",lineHeight:1.6}}>{result.observaciones}</div>
+            </Card>
+          )}
+
+          {/* CTA solicitar oferta */}
+          {!solEnviada?(
+            <Card style={{border:"1.5px dashed #2563eb",background:"#eff6ff"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
+                <div>
+                  <div style={{fontSize:13,fontWeight:700,color:"#1e3a5f"}}>¿Quieres una oferta formal?</div>
+                  <div style={{fontSize:11,color:"#6b7280",marginTop:2}}>Te enviamos una oferta detallada con condiciones y plazos en menos de 48h</div>
+                </div>
+                <button onClick={()=>{setSolEnviada(true);}}
+                  style={{background:"#1e3a5f",color:"#fff",border:"none",borderRadius:8,padding:"10px 20px",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>
+                  📤 Solicitar oferta
+                </button>
+              </div>
+            </Card>
+          ):(
+            <Card style={{background:"#f0fdf4",border:"1px solid #86efac"}}>
+              <div style={{textAlign:"center",padding:"8px 0"}}>
+                <div style={{fontSize:20,marginBottom:6}}>✅</div>
+                <div style={{fontSize:13,fontWeight:700,color:"#166534"}}>¡Solicitud enviada!</div>
+                <div style={{fontSize:11,color:"#166534",marginTop:3}}>El equipo comercial de Torres Gumà te contactará en menos de 48h.</div>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── LOGIN ─────────────────────────────────────────────────────────
 function PortalLogin({ onLogin }){
   const [email,setEmail]     = useState("");
@@ -765,6 +1030,7 @@ const NAV_PORTAL = [
   {id:"ofertas",    label:"Ofertas",           icon:"📄"},
   {id:"albaranes",  label:"Albaranes",         icon:"📦"},
   {id:"calidad",     label:"Calidad",           icon:"🏅"},
+  {id:"calculadora",  label:"Calculadora",       icon:"🧮"},
 ];
 
 export default function PortalCliente({ onSalir }){
@@ -853,6 +1119,7 @@ export default function PortalCliente({ onSalir }){
         {seccion==="ofertas"     &&<PortalOfertas ofertas={ofertas} setOfertas={setOfertas}/>}
         {seccion==="albaranes"   &&<PortalAlbaranes albaranes={albs}/>}
         {seccion==="calidad"&&<PortalCalidad certs={certs}/>}
+        {seccion==="calculadora"&&<PortalCalculadora cliente={cliente}/>}
       </div>
     </div>
   );
