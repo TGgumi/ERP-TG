@@ -160,7 +160,7 @@ const MAQUINAS_LIST=[
   {id:"TWIN44",   linea:"TWIN",     tipo:"Recubrimiento", usaHornos:true,  planta:"Vitoria"},
   {id:"TWIN02",   linea:"TWIN",     tipo:"Recubrimiento", usaHornos:true,  planta:"Vitoria"},
   {id:"DB02",     linea:"BASTIDOR", tipo:"Desengrasado",  usaHornos:false, planta:"Vitoria"},
-  {id:"DE02",     linea:"BASTIDOR", tipo:"Desengrasado",  usaHornos:false, planta:"Vitoria"},
+  {id:"DE02",     linea:"DESENG.",  tipo:"Desengrasado",  usaHornos:false, planta:"Vitoria"},
   {id:"GR-BAST",  linea:"BASTIDOR", tipo:"Granallado",    usaHornos:false, planta:"Vitoria"},
   {id:"MN Bastid",linea:"BASTIDOR", tipo:"Recubrimiento", usaHornos:false, planta:"Vitoria"},
   {id:"DC02",     linea:"DESAC.",   tipo:"Desaceitado",   usaHornos:false, planta:"Vitoria"},
@@ -172,7 +172,7 @@ const MAQUINAS_LIST=[
 ];
 
 const EC={"Produciendo":{bg:"#166534",bd:"#22c55e",tx:"#fff"},"Espera":{bg:"#1e40af",bd:"#60a5fa",tx:"#fff"},"Avería":{bg:"#991b1b",bd:"#ef4444",tx:"#fff"},"Parada":{bg:"#374151",bd:"#9ca3af",tx:"#fff"},"Ajuste":{bg:"#92400e",bd:"#f59e0b",tx:"#fff"},"Limpieza":{bg:"#5b21b6",bd:"#a78bfa",tx:"#fff"},"Mantenimiento":{bg:"#78350f",bd:"#fbbf24",tx:"#fff"}};
-const LINEA_C={"TWIN":"#185FA5","MN":"#0F6E56","BASTIDOR":"#92400e","DESAC.":"#5b21b6","MALLADO":"#374151"};
+const LINEA_C={"TWIN":"#185FA5","MN":"#0F6E56","BASTIDOR":"#92400e","DESAC.":"#5b21b6","MALLADO":"#374151","DESENG.":"#0e7490"};
 
 // ─── COMPONENTES ──────────────────────────────────────────────────
 function FTag({f}){
