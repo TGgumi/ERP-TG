@@ -532,7 +532,13 @@ export default function ERP() {
               );
             })}
           </nav>
-          <div style={{ padding:"8px 14px", borderTop:"0.5px solid var(--color-border-tertiary)", fontSize:10, color:"var(--color-text-secondary)" }}>v1.0 · {new Date().toLocaleDateString("es-ES")}</div>
+          <div style={{ padding:"8px 12px", borderTop:"0.5px solid var(--color-border-tertiary)" }}>
+            <button onClick={()=>setPortal(true)}
+              style={{width:"100%",background:"#1e3a5f",color:"#fff",border:"none",borderRadius:7,padding:"8px 10px",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6,justifyContent:"center",marginBottom:6}}>
+              🌐 Portal Cliente
+            </button>
+            <div style={{ fontSize:10, color:"var(--color-text-secondary)", textAlign:"center" }}>v1.0 · {new Date().toLocaleDateString("es-ES")}</div>
+          </div>
         </div>
 
         {/* MAIN */}
