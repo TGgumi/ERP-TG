@@ -180,7 +180,7 @@ function FTag({f}){
   return<span style={{display:"inline-flex",padding:"1px 5px",borderRadius:4,fontSize:9.5,fontWeight:700,background:c+"22",color:c,border:`0.5px solid ${c}55`}}>{f}</span>;
 }
 
-function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,bastidores,confirmadas,bloqueadas}){
+function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,bastidores,onBastidores,confirmadas,bloqueadas}){
   const s=SC[sem(o.fentrega)];
   const c=cic(o,maq);
   const a=atr(o.fentrega);
@@ -206,9 +206,18 @@ function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,bastidor
         <div style={{fontSize:10.5,color:s.tx,opacity:.7,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:220}}>{o.proceso}</div>
         <div style={{fontSize:10,color:s.tx,opacity:.55,marginTop:1}}>ref: {o.ref}</div>
         {(()=>{const fot=(fichas||[]).find(f=>f.ref_cli===o.ref||f.desc===o.ref)?.foto;return fot?<img src={fot} alt={o.ref} style={{marginTop:5,width:48,height:48,objectFit:"cover",borderRadius:6,border:"1px solid #e2e8f0"}}/>:null;})()}
-        {confirmadas.has&&["DB02","GR-BAST","MN Bastid"].includes(maq)&&confirmadas.has(`${o.of}:${maq}`)&&bastidores&&bastidores[`${o.of}:${maq}`]&&(
-          <div style={{marginTop:4,fontSize:10,fontWeight:700,color:"#1d4ed8",background:"#eff6ff",borderRadius:4,padding:"2px 7px",display:"inline-block",border:"0.5px solid #bfdbfe"}}>
-            🗂 {bastidores[`${o.of}:${maq}`]} bastidores
+        {["DB02","GR-BAST","MN Bastid"].includes(maq)&&(
+          <div style={{marginTop:6,display:"flex",alignItems:"center",gap:6}}>
+            <span style={{fontSize:10,fontWeight:600,color:"#374151"}}>🗂 Bastidores:</span>
+            <select
+              value={(bastidores&&bastidores[`${o.of}:${maq}`])||""}
+              onChange={e=>onBastidores&&onBastidores(o,maq,e.target.value)}
+              style={{fontSize:11,fontWeight:700,padding:"2px 6px",borderRadius:5,border:"1px solid #93c5fd",background:"#eff6ff",color:"#1d4ed8",cursor:"pointer",outline:"none"}}>
+              <option value="">—</option>
+              {Array.from({length:20},(_,i)=>i+1).map(n=>(
+                <option key={n} value={String(n)}>{n}</option>
+              ))}
+            </select>
           </div>
         )}
         {o.nPed&&o.cli!=null&&(
@@ -277,7 +286,7 @@ function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,bastidor
   );
 }
 
-function HornoCard({maq,num,ofs_h,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,bastidores,confirmadas,bloqueadas}){
+function HornoCard({maq,num,ofs_h,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,bastidores,onBastidores,confirmadas,bloqueadas}){
   const [open,setOpen]=useState(true);
   const tot=ofs_h.reduce((s,o)=>s+cic(o,maq),0);
   const ok=tot>=HMIN&&tot<=HMAX;
@@ -306,14 +315,14 @@ function HornoCard({maq,num,ofs_h,onNC,onOK,onDeshacer,onDeshacerNC,operario,fic
       </div>
       {open&&(
         <div style={{paddingLeft:6,paddingTop:5,display:"flex",flexDirection:"column",gap:4}}>
-          {ofs_h.map((o,i)=><OFRow key={`${o.of}-${i}`} o={o} maq={maq} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} fichas={fichas} bastidores={bastidores} confirmadas={confirmadas} bloqueadas={bloqueadas}/>)}
+          {ofs_h.map((o,i)=><OFRow key={`${o.of}-${i}`} o={o} maq={maq} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} fichas={fichas} bastidores={bastidores} onBastidores={onBastidores} confirmadas={confirmadas} bloqueadas={bloqueadas}/>)}
         </div>
       )}
     </div>
   );
 }
 
-function VistaMaquina({maq,plan,usaHornos,est,onCambiarEst,operario,onCambiarOperario,onNC,onOK,onDeshacer,onDeshacerNC,fichas,bastidores,confirmadas,bloqueadas}){
+function VistaMaquina({maq,plan,usaHornos,est,onCambiarEst,operario,onCambiarOperario,onNC,onOK,onDeshacer,onDeshacerNC,fichas,bastidores,onBastidores,confirmadas,bloqueadas}){
   const col=EC[est]||EC["Espera"];
   const hornos={};
   if(usaHornos){plan.forEach(o=>{const h=o.horno||1;if(!hornos[h])hornos[h]=[];hornos[h].push(o);});}
@@ -359,12 +368,12 @@ function VistaMaquina({maq,plan,usaHornos,est,onCambiarEst,operario,onCambiarOpe
         ):usaHornos?(
           // Vista con hornos (TWIN44, TWIN02, MN-01)
           Object.entries(hornos).map(([h,ofs_h])=>(
-            <HornoCard key={h} maq={maq} num={+h} ofs_h={ofs_h} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} fichas={fichas} bastidores={bastidores} confirmadas={confirmadas} bloqueadas={bloqueadas}/>
+            <HornoCard key={h} maq={maq} num={+h} ofs_h={ofs_h} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} fichas={fichas} bastidores={bastidores} onBastidores={onBastidores} confirmadas={confirmadas} bloqueadas={bloqueadas}/>
           ))
         ):(
           // Vista sin hornos — lista directa
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            {plan.map((o,i)=><OFRow key={`${o.of}-${i}`} o={o} maq={maq} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} fichas={fichas} bastidores={bastidores} confirmadas={confirmadas} bloqueadas={bloqueadas}/>)}
+            {plan.map((o,i)=><OFRow key={`${o.of}-${i}`} o={o} maq={maq} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} fichas={fichas} bastidores={bastidores} onBastidores={onBastidores} confirmadas={confirmadas} bloqueadas={bloqueadas}/>)}
           </div>
         )}
       </div>
@@ -490,8 +499,8 @@ function ModalControl({maqId, of_, onClose, onGuardar, nBastPrev}){
   const esNOK = resultado === "NOK";
   const genNC = esNOK; // genera NC automáticamente si es NOK
   // DB02 / GR-BAST / MN Bastid: requiere nº bastidores
-  const esBast = ["DB02","GR-BAST","MN Bastid"].includes(maqId);
-  const needsBast = esBast && !nBast;
+  const esBast = false; // bastidores ahora se indica directo en la tarjeta OF
+  const needsBast = false;
   // Pintura: validar que haya al menos 1 foto pieza y la foto cinta
   const canSave = !needsBast && esPintura
     ? fotosPiezas.some(f=>f) && fotoCinta
@@ -1467,6 +1476,7 @@ export default function VistaOperario(){
           onDeshacer={o=>desconfirmarOF(o,maqActiva)}
           onDeshacerNC={(o,bloq)=>deshacerNC(o,bloq)}
           bastidores={bastidores}
+          onBastidores={(o,maq,val)=>setBastidores(p=>({...p,[`${o.of}:${maq}`]:val}))}
           confirmadas={confirmadas}
           bloqueadas={bloqueadas}
         />
