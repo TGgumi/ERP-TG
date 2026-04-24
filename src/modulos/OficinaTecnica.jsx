@@ -944,17 +944,368 @@ Sin texto adicional, sin markdown.`;
   );
 }
 
+
+// ─── CALCULADORA DE COSTOS ────────────────────────────────────────
+const RECUBRIMIENTOS = [
+  {id:"kl100_1",label:"1ª KL100"},
+  {id:"kl100_2",label:"2ª KL100"},
+  {id:"kl100_3",label:"3ª KL100"},
+  {id:"kl100_4",label:"4ª KL100"},
+  {id:"kl120_1",label:"1ª KL120"},
+  {id:"kl120_2",label:"2ª KL120"},
+  {id:"kl120_3",label:"3ª KL120"},
+  {id:"kl120_4",label:"4ª KL120"},
+  {id:"negro_1",label:"1ª NEGRO GZ"},
+  {id:"negro_2",label:"2ª NEGRO GZ"},
+  {id:"negro_3",label:"3ª NEGRO GZ"},
+  {id:"plata_1",label:"1ª PLATA"},
+  {id:"plata_2",label:"2ª PLATA"},
+  {id:"blanc_1",label:"1ª BLANC"},
+  {id:"blanc_2",label:"2ª BLANC"},
+  {id:"groc_1",label:"1ª GROC"},
+  {id:"groc_2",label:"2ª GROC"},
+  {id:"vh",    label:"VH"},
+  {id:"anticorit",label:"Anticorit MKR"},
+];
+
+const FAMILIAS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".slice(0,20).split("").map(l=>l);
+
+const PLANTA_INFO = {
+  Esparreguera: {
+    desc:"Calculadora costos Esparreguera V13",
+    color:"#14532d", light:"#f0fdf4", bd:"#86efac",
+    maquinas:["DES-01","GR-1","RO5-6/TWIN44","MN01/TWIN02","PRE-B","GR-B","MN-B 120 espais"],
+    recubriemntosExtra:[],
+  },
+  Vitoria: {
+    desc:"Calculadora costos Vitoria V14",
+    color:"#1e3a5f", light:"#eff6ff", bd:"#93c5fd",
+    maquinas:["DES-01","GR-1","TWIN44","TWIN02","PRE-B","GR-B","MN-B","DC-02","Enmallado"],
+    recubrimientosExtra:["anticorit"],
+  },
+};
+
+const LOTES_CESTA = ["0-79 (PM)","80-249","250-999","1000+"];
+const PROD_ANUAL  = ["No aplica / 0-2999","0-9999","10000-99999","100000+"];
+
+function TabCalculadoras(){
+  const API_KEY = import.meta.env.VITE_ANTHROPIC_KEY;
+  const [planta, setPlanta]   = useState("Esparreguera");
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState("");
+  const [result,  setResult]  = useState(null);
+
+  const [form, setForm] = useState({
+    cliente:"", referencia:"", denominacion:"", codigoInterno:"",
+    kgAnuales:"", norma:"", peso:"", ancho:"", alto:"", largo:"",
+    familia:"A",
+    recs: {},
+  });
+
+  const ff = k => e => setForm(p=>({...p,[k]:e.target.value}));
+  const toggleRec = id => setForm(p=>({...p,recs:{...p.recs,[id]:!p.recs[id]}}));
+  const recsSeleccionados = RECUBRIMIENTOS.filter(r=>form.recs[r.id]);
+
+  const pi = PLANTA_INFO[planta];
+
+  async function calcular(){
+    if(!form.peso||!form.ancho||!form.alto||!form.largo||recsSeleccionados.length===0){
+      setError("Completa al menos: peso, dimensiones y al menos un recubrimiento.");
+      return;
+    }
+    setLoading(true); setError(""); setResult(null);
+
+    const prompt = `Eres el motor de cálculo de la calculadora de costos de tratamiento superficial Torres Gumà para la planta de ${planta}.
+
+Datos de entrada:
+- Planta: ${planta}
+- Peso pieza: ${form.peso} g
+- Dimensiones: ${form.ancho}mm x ${form.alto}mm x ${form.largo}mm
+- Familia pieza: ${form.familia}
+- Kg anuales previstos: ${form.kgAnuales||"no indicado"}
+- Recubrimientos seleccionados: ${recsSeleccionados.map(r=>r.label).join(", ")}
+- Máquinas disponibles en la planta: ${pi.maquinas.join(", ")}
+- Cliente: ${form.cliente||"no indicado"}
+- Referencia: ${form.referencia||"no indicada"}
+- Norma: ${form.norma||"no indicada"}
+
+La calculadora funciona así:
+1. Calcula el volumen y superficie aproximada de la pieza a partir de sus dimensiones
+2. Estima el kg por cesta para cada máquina según peso y familia
+3. Calcula el coste de producción €/kg para diferentes tramos de lote: 0-79kg(PM), 80-249kg, 250-999kg, 1000+kg
+4. Cruza con producciones anuales: 0-9999, 10000-99999, 100000+
+5. Añade margen de beneficio según familia (entre 0.15 y 0.35)
+6. Para Vitoria, también calcula precio por unidades/bastidor
+
+Genera una tabla de precios realista en €/kg y €/unidad, costes de producción, beneficio neto y proceso resultante.
+
+Responde SOLO con JSON sin markdown:
+{
+  "proceso": "descripción del proceso",
+  "proceso_en": "process in english",
+  "kgCesta": {"maquina": kg_number},
+  "tabla_cesta": [
+    {"lote":"80-249","prio12_0-9999": x, "prio12_10k-100k": x, "prio12_100k+": x, "prio34_0-9999": x, "prio34_10k-100k": x, "prio34_100k+": x}
+  ],
+  "tabla_bastidor": [
+    {"lote":"50-99 uds","rango1": x, "rango2": x, "rango3": x}
+  ],
+  "resumen": {
+    "precio_kg_referencia": x,
+    "coste_produccion_kg": x,
+    "beneficio_neto_kg": x,
+    "precio_ud_referencia": x,
+    "coste_produccion_ud": x,
+    "beneficio_neto_ud": x,
+    "beneficio_total_estimado": x
+  },
+  "notas": "observaciones relevantes"
+}`;
+
+    try {
+      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":API_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body: JSON.stringify({
+          model:"claude-sonnet-4-20250514", max_tokens:2000,
+          messages:[{role:"user",content:prompt}]
+        })
+      });
+      const data = await resp.json();
+      if(data.error) throw new Error(data.error.message);
+      const txt = data.content?.find(b=>b.type==="text")?.text||"";
+      const clean = txt.replace(/```json|```/g,"").trim();
+      setResult(JSON.parse(clean));
+    } catch(e){
+      setError("Error al calcular: "+e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const inp = {border:"1px solid #e5e7eb",borderRadius:6,padding:"6px 9px",fontSize:12,color:"#111827",outline:"none",width:"100%",boxSizing:"border-box"};
+  const lbl = {fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:".05em",display:"block",marginBottom:3};
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:16}}>
+
+      {/* Selector planta */}
+      <div style={{display:"flex",gap:10}}>
+        {Object.entries(PLANTA_INFO).map(([p,info])=>(
+          <button key={p} onClick={()=>{setPlanta(p);setResult(null);setError("");}}
+            style={{flex:1,padding:"12px 16px",borderRadius:10,cursor:"pointer",textAlign:"center",fontWeight:planta===p?700:500,
+              background:planta===p?info.color:"#f8fafc",
+              color:planta===p?"#fff":"#374151",
+              border:planta===p?`2px solid ${info.color}`:`1px solid ${info.bd}`,
+              transition:"all .15s"}}>
+            <div style={{fontSize:16,marginBottom:3}}>{p==="Vitoria"?"🏙":"🌿"}</div>
+            <div style={{fontSize:13}}>{p}</div>
+            <div style={{fontSize:10,opacity:.75,marginTop:2}}>{info.desc}</div>
+          </button>
+        ))}
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+        {/* Columna izquierda: datos pieza */}
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+
+          <div style={{background:"#fff",border:"0.5px solid #e2e8f0",borderRadius:10,padding:"14px 16px"}}>
+            <div style={{fontSize:12,fontWeight:700,color:"#374151",marginBottom:10,borderBottom:"1px solid #f1f5f9",paddingBottom:6}}>📋 Datos cliente y referencia</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {[["cliente","Cliente"],["referencia","Referencia"],["denominacion","Denominación pieza"],["codigoInterno","Código interno"],["norma","Norma"],["kgAnuales","Kg anuales previstos"]].map(([k,l])=>(
+                <div key={k}><label style={lbl}>{l}</label><input value={form[k]} onChange={ff(k)} style={inp}/></div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{background:"#fff",border:"0.5px solid #e2e8f0",borderRadius:10,padding:"14px 16px"}}>
+            <div style={{fontSize:12,fontWeight:700,color:"#374151",marginBottom:10,borderBottom:"1px solid #f1f5f9",paddingBottom:6}}>📐 Dimensiones y peso</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              <div><label style={lbl}>Peso pieza (g) *</label><input type="number" value={form.peso} onChange={ff("peso")} style={inp} placeholder="ej. 18"/></div>
+              <div>
+                <label style={lbl}>Familia pieza *</label>
+                <select value={form.familia} onChange={ff("familia")} style={inp}>
+                  {FAMILIAS.map(f=><option key={f} value={f}>Tipo {f}</option>)}
+                </select>
+              </div>
+              {[["ancho","Ancho (mm)"],["alto","Alto (mm)"],["largo","Largo (mm)"]].map(([k,l])=>(
+                <div key={k}><label style={lbl}>{l} *</label><input type="number" value={form[k]} onChange={ff(k)} style={inp} placeholder="mm"/></div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+
+        {/* Columna derecha: recubrimientos */}
+        <div style={{background:"#fff",border:"0.5px solid #e2e8f0",borderRadius:10,padding:"14px 16px"}}>
+          <div style={{fontSize:12,fontWeight:700,color:"#374151",marginBottom:10,borderBottom:"1px solid #f1f5f9",paddingBottom:6}}>🎨 Recubrimientos</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+            {RECUBRIMIENTOS.filter(r=>planta==="Vitoria"||r.id!=="anticorit").map(r=>{
+              const sel = !!form.recs[r.id];
+              return(
+                <label key={r.id} onClick={()=>toggleRec(r.id)}
+                  style={{display:"flex",alignItems:"center",gap:6,padding:"6px 8px",borderRadius:6,cursor:"pointer",
+                    background:sel?pi.light:"#f8fafc",border:`0.5px solid ${sel?pi.bd:"#e2e8f0"}`,userSelect:"none"}}>
+                  <input type="checkbox" checked={sel} readOnly style={{accentColor:pi.color,cursor:"pointer"}}/>
+                  <span style={{fontSize:11,fontWeight:sel?700:400,color:sel?pi.color:"#374151"}}>{r.label}</span>
+                </label>
+              );
+            })}
+          </div>
+          {recsSeleccionados.length>0&&(
+            <div style={{marginTop:10,padding:"8px 10px",background:pi.light,borderRadius:6,fontSize:11,color:pi.color,fontWeight:600}}>
+              Proceso: {recsSeleccionados.map(r=>r.label).join(" + ")}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Botón calcular */}
+      <div style={{display:"flex",gap:10,alignItems:"center"}}>
+        <button onClick={calcular} disabled={loading}
+          style={{background:loading?"#94a3b8":pi.color,color:"#fff",border:"none",borderRadius:8,padding:"10px 24px",
+            fontSize:13,fontWeight:700,cursor:loading?"not-allowed":"pointer"}}>
+          {loading?"⏳ Calculando...":"⚡ Calcular costos"}
+        </button>
+        {error&&<span style={{fontSize:12,color:"#b91c1c",fontWeight:600}}>{error}</span>}
+      </div>
+
+      {/* Resultado */}
+      {result&&(
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+
+          {/* Proceso */}
+          <div style={{background:pi.light,border:`1px solid ${pi.bd}`,borderRadius:10,padding:"12px 16px"}}>
+            <div style={{fontSize:11,fontWeight:700,color:pi.color,textTransform:"uppercase",letterSpacing:".05em",marginBottom:4}}>Proceso resultante</div>
+            <div style={{fontSize:13,fontWeight:600,color:"#111827"}}>{result.proceso}</div>
+            {result.proceso_en&&<div style={{fontSize:11,color:"#6b7280",marginTop:2,fontStyle:"italic"}}>{result.proceso_en}</div>}
+            {result.notas&&<div style={{fontSize:11,color:"#374151",marginTop:6,padding:"6px 10px",background:"#fff",borderRadius:6,border:"0.5px solid #e2e8f0"}}>{result.notas}</div>}
+          </div>
+
+          {/* KG por cesta */}
+          {result.kgCesta&&Object.keys(result.kgCesta).length>0&&(
+            <div style={{background:"#fff",border:"0.5px solid #e2e8f0",borderRadius:10,padding:"14px 16px"}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#374151",marginBottom:10}}>📦 Kg sugeridos por cesta</div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {Object.entries(result.kgCesta).map(([m,v])=>(
+                  <div key={m} style={{background:"#f8fafc",borderRadius:6,padding:"6px 12px",textAlign:"center",border:"0.5px solid #e2e8f0"}}>
+                    <div style={{fontSize:9,fontWeight:700,color:"#9ca3af",textTransform:"uppercase"}}>{m}</div>
+                    <div style={{fontSize:14,fontWeight:700,color:"#111827"}}>{v} kg</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Tabla precios cesta */}
+          {result.tabla_cesta&&result.tabla_cesta.length>0&&(
+            <div style={{background:"#fff",border:"0.5px solid #e2e8f0",borderRadius:10,padding:"14px 16px"}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#374151",marginBottom:10}}>💶 Precios €/kg — Sistema cesta</div>
+              <div style={{overflowX:"auto"}}>
+                <table style={{borderCollapse:"collapse",fontSize:11,width:"100%"}}>
+                  <thead>
+                    <tr style={{background:pi.color,color:"#fff"}}>
+                      <th style={{padding:"6px 10px",textAlign:"left"}}>Lote (kg)</th>
+                      <th style={{padding:"6px 10px",textAlign:"center"}} colSpan={3}>Prio 1/2 — Producción anual</th>
+                      <th style={{padding:"6px 10px",textAlign:"center"}} colSpan={3}>Prio 3/4 — Producción anual</th>
+                    </tr>
+                    <tr style={{background:"#f1f5f9",fontSize:10}}>
+                      <th style={{padding:"4px 10px"}}/>
+                      {["0-9.999","10k-99k","100k+","0-9.999","10k-99k","100k+"].map((h,i)=>(
+                        <th key={i} style={{padding:"4px 8px",textAlign:"center",color:"#6b7280"}}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {result.tabla_cesta.map((r,i)=>(
+                      <tr key={i} style={{background:i%2===0?"#fff":"#f9fafb"}}>
+                        <td style={{padding:"5px 10px",fontWeight:600}}>{r.lote}</td>
+                        {["prio12_0-9999","prio12_10k-100k","prio12_100k+","prio34_0-9999","prio34_10k-100k","prio34_100k+"].map((k,j)=>(
+                          <td key={j} style={{padding:"5px 8px",textAlign:"center",fontFamily:"monospace"}}>
+                            {r[k]!=null?`${Number(r[k]).toFixed(4)} €`:"—"}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Tabla bastidor (solo Vitoria) */}
+          {planta==="Vitoria"&&result.tabla_bastidor&&result.tabla_bastidor.length>0&&(
+            <div style={{background:"#fff",border:"0.5px solid #e2e8f0",borderRadius:10,padding:"14px 16px"}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#374151",marginBottom:10}}>🗂 Precios €/unidad — Sistema bastidor</div>
+              <div style={{overflowX:"auto"}}>
+                <table style={{borderCollapse:"collapse",fontSize:11,width:"100%"}}>
+                  <thead>
+                    <tr style={{background:pi.color,color:"#fff"}}>
+                      <th style={{padding:"6px 10px",textAlign:"left"}}>Lote (uds)</th>
+                      <th style={{padding:"6px 10px",textAlign:"center"}}>0-699</th>
+                      <th style={{padding:"6px 10px",textAlign:"center"}}>700-4.999</th>
+                      <th style={{padding:"6px 10px",textAlign:"center"}}>5.000+</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {result.tabla_bastidor.map((r,i)=>(
+                      <tr key={i} style={{background:i%2===0?"#fff":"#f9fafb"}}>
+                        <td style={{padding:"5px 10px",fontWeight:600}}>{r.lote}</td>
+                        {["rango1","rango2","rango3"].map((k,j)=>(
+                          <td key={j} style={{padding:"5px 8px",textAlign:"center",fontFamily:"monospace"}}>
+                            {r[k]!=null?`${Number(r[k]).toFixed(4)} €`:"—"}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Resumen */}
+          {result.resumen&&(
+            <div style={{background:"#fff",border:"0.5px solid #e2e8f0",borderRadius:10,padding:"14px 16px"}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#374151",marginBottom:10}}>📊 Resumen económico</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:8}}>
+                {[
+                  ["Precio ref. €/kg",result.resumen.precio_kg_referencia,"€/kg"],
+                  ["Coste producción €/kg",result.resumen.coste_produccion_kg,"€/kg"],
+                  ["Beneficio neto €/kg",result.resumen.beneficio_neto_kg,"€/kg"],
+                  ["Precio ref. €/ud",result.resumen.precio_ud_referencia,"€/ud"],
+                  ["Coste producción €/ud",result.resumen.coste_produccion_ud,"€/ud"],
+                  ["Beneficio neto €/ud",result.resumen.beneficio_neto_ud,"€/ud"],
+                  ["Beneficio total estimado",result.resumen.beneficio_total_estimado,"€"],
+                ].filter(([,v])=>v!=null).map(([lbl,val,unit])=>(
+                  <div key={lbl} style={{background:"#f8fafc",borderRadius:8,padding:"10px 12px",textAlign:"center",border:"0.5px solid #e2e8f0"}}>
+                    <div style={{fontSize:9,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",marginBottom:4}}>{lbl}</div>
+                    <div style={{fontSize:15,fontWeight:700,color:parseFloat(val)<0?"#b91c1c":"#111827",fontFamily:"monospace"}}>
+                      {parseFloat(val).toFixed(unit==="€"?0:4)} <span style={{fontSize:10,color:"#6b7280"}}>{unit}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function OficinaTecnica(){
   const [tab,setTab]   = useState("fichas");
   const [fichas,setFichas] = useState(FICHAS_INIT);
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
-      <Tabs items={[["fichas","Fichas técnicas"],["recetas","Recetas máquina"],["rutas","Rutas proceso"],["ofertas","Ofertas"],["ia","✦ Recomendador IA"]]} cur={tab} onChange={setTab}/>
+      <Tabs items={[["fichas","Fichas técnicas"],["recetas","Recetas máquina"],["rutas","Rutas proceso"],["ofertas","Ofertas"],["calc","🧮 Calculadoras"],["ia","✦ Recomendador IA"]]} cur={tab} onChange={setTab}/>
       {tab==="fichas"  && <TabFichas/>}
       {tab==="recetas" && <TabRecetas fichas={fichas}/>}
       {tab==="rutas"   && <TabRutas fichas={fichas}/>}
       {tab==="ofertas" && <TabOfertas/>}
+      {tab==="calc"    && <TabCalculadoras/>}
       {tab==="ia"      && <TabRecomendador/>}
     </div>
   );
