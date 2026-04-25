@@ -121,6 +121,27 @@ function Barcode39({ text, height=50, narrow=2, wide=6, quiet=10 }){
 }
 
 function OFModal({ onClose, onSave }) {
+  // Combinar HOMS estáticos con fichas técnicas de Oficina Técnica (estado Activa)
+  const { fichas } = useContext(ERPContext);
+  const fichasComoHoms = (fichas||[])
+    .filter(f=>f.estado==="Activa"&&f.ref_cli)
+    .map(f=>({
+      id: `ft-${f.id}`,
+      cli: f.cli,
+      maq: f.tipo_rec?.includes("Bastid")||f.proceso?.includes("BAST")?"MN Bastid":"TWIN44",
+      cod: f.cod||"",
+      ref: f.ref_cli||"",
+      desc: f.desc||"",
+      kg: 80,
+      vb: 25, tb: 20, vc: 180, tc: 60, g: 1,
+      top: f.tipo_rec||"",
+      fase: "4DT",
+      est: "Activa",
+      proceso: f.proceso||"",
+      _deFicha: true,
+    }));
+  const HOMS_ALL = [...HOMS, ...fichasComoHoms];
+
   const [step, setStep]   = useState(1);
   const [cliId, setCli]   = useState(null);
   const [homId, setHom]   = useState(null);
@@ -133,9 +154,9 @@ function OFModal({ onClose, onSave }) {
   const [qCli, setQCli]   = useState("");
   const [qHom, setQHom]   = useState("");
 
-  const actH    = HOMS.filter(h => h.cli===cliId && h.est==="Activa");
-  const inactH  = HOMS.filter(h => h.cli===cliId && h.est!=="Activa");
-  const hom     = HOMS.find(h => h.id===homId);
+  const actH    = HOMS_ALL.filter(h => h.cli===cliId && h.est==="Activa");
+  const inactH  = HOMS_ALL.filter(h => h.cli===cliId && h.est!=="Activa");
+  const hom     = HOMS_ALL.find(h => h.id===homId);
   const maqMant = hom && MAQUINAS.find(m => m.id===hom.maq)?.est==="Mantenimiento";
   const canNext = (step===1&&cliId)||(step===2&&homId)||(step===3&&kg&&fe&&nCont&&nPed&&nPed.length===4)||step===4;
   function goNext(){ if(canNext){ setStep(s=>s+1); setQCli(""); setQHom(""); } }
@@ -175,8 +196,8 @@ function OFModal({ onClose, onSave }) {
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:290,overflowY:"auto"}}>
                 {CLIENTES.filter(c=>!qCli||c.n.toLowerCase().includes(qCli.toLowerCase())||c.s?.toLowerCase().includes(qCli.toLowerCase())).map(c=>{
-                  const nA=HOMS.filter(h=>h.cli===c.id&&h.est==="Activa").length;
-                  const nT=HOMS.filter(h=>h.cli===c.id).length;
+                  const nA=HOMS_ALL.filter(h=>h.cli===c.id&&h.est==="Activa").length;
+                  const nT=HOMS_ALL.filter(h=>h.cli===c.id).length;
                   const dis=nA===0, sel=cliId===c.id;
                   return(
                     <div key={c.id} onClick={()=>{if(!dis){setCli(c.id);setQCli("");}}} style={{padding:"10px 12px",borderRadius:7,display:"flex",alignItems:"center",gap:10,cursor:dis?"not-allowed":"pointer",opacity:dis?.4:1,border:`1px solid ${sel?"#93c5fd":"#e5e7eb"}`,background:sel?"#eff6ff":"#ffffff"}}>
