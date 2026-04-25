@@ -80,6 +80,27 @@ function Barcode39({text, height=40, narrow=1.5, wide=4, quiet=8}){
   );
 }
 
+
+// ─── PARSEAR CAPAS DE RECUBRIMIENTO ──────────────────────────────
+function parsearCapas(proceso){
+  if(!proceso) return [];
+  const capas = [];
+  // Regex: NxPRODUCTO o 1xPRODUCTO
+  const matches = proceso.matchAll(/(\d+)x([A-Z][A-Z0-9 _\-]+?)(?=\s*\+|\s*$)/g);
+  for(const m of matches){
+    const n = parseInt(m[1]);
+    const prod = m[2].trim();
+    for(let i=1;i<=n;i++) capas.push(`${i}ª capa ${prod}`);
+  }
+  // Si no hay formato Nx, buscar palabras clave directas
+  if(capas.length===0){
+    ["KL100","KL120","NEGRO GZ","NEGRO","PLATA GZ","PLATA","VH","BLANC","GROC","SEAL"].forEach(p=>{
+      if(proceso.includes(p)) capas.push(`1ª capa ${p}`);
+    });
+  }
+  return capas;
+}
+
 const MPC={"MN-01":4.5,"TWIN44":4.5,"TWIN02":4.5,"PRE-02":5,"GR-02":5,"PRE-01":5,"GR-01":5,"DE02":20,"DB02":20,"GR-BAST":15,"MN Bastid":12,"DC02":5};
 
 // Orden global del proceso — de izquierda a derecha
@@ -180,7 +201,7 @@ function FTag({f}){
   return<span style={{display:"inline-flex",padding:"1px 5px",borderRadius:4,fontSize:9.5,fontWeight:700,background:c+"22",color:c,border:`0.5px solid ${c}55`}}>{f}</span>;
 }
 
-function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,bastidores,onBastidores,confirmadas,bloqueadas}){
+function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,bastidores,onBastidores,capasOF,onToggleCapa,confirmadas,bloqueadas}){
   const s=SC[sem(o.fentrega)];
   const c=cic(o,maq);
   const a=atr(o.fentrega);
@@ -252,6 +273,46 @@ function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,bastidor
             )}
           </div>
         )}
+        {/* Capas de recubrimiento — solo en máquinas de recubrimiento */}
+        {["TWIN44","TWIN02","MN-01","MN Bastid"].includes(maq)&&(()=>{
+          const capas = parsearCapas(o.proceso);
+          if(capas.length===0) return null;
+          const key = `${o.of}:${maq}`;
+          const completadas = capasOF?.[key]||new Set();
+          const todas = capas.length===completadas.size;
+          return(
+            <div style={{marginTop:6,background:todas?"#f0fdf4":"#fafafa",borderRadius:8,padding:"7px 9px",border:`0.5px solid ${todas?"#86efac":"#e2e8f0"}`}}>
+              <div style={{fontSize:10,fontWeight:700,color:"#374151",marginBottom:5,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <span>🎨 Capas de recubrimiento</span>
+                <span style={{fontSize:9,color:todas?"#16a34a":"#9ca3af",fontWeight:600}}>{completadas.size}/{capas.length} completadas</span>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                {capas.map((capa,i)=>{
+                  const hecha = completadas.has(capa);
+                  return(
+                    <label key={i} onClick={()=>onToggleCapa&&onToggleCapa(o.of,maq,capa)}
+                      style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",padding:"4px 6px",borderRadius:5,
+                        background:hecha?"#dcfce7":"#fff",border:`0.5px solid ${hecha?"#86efac":"#e5e7eb"}`,userSelect:"none"}}>
+                      <div style={{width:16,height:16,borderRadius:4,flexShrink:0,
+                        background:hecha?"#16a34a":"#fff",border:`1.5px solid ${hecha?"#16a34a":"#d1d5db"}`,
+                        display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",fontWeight:700}}>
+                        {hecha?"✓":""}
+                      </div>
+                      <span style={{fontSize:11,fontWeight:hecha?600:400,color:hecha?"#166534":"#374151",textDecoration:hecha?"none":"none"}}>
+                        {capa}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+              {todas&&(
+                <div style={{marginTop:5,fontSize:10,color:"#16a34a",fontWeight:700,textAlign:"center"}}>
+                  ✅ Todas las capas completadas
+                </div>
+              )}
+            </div>
+          );
+        })()}
         {o.nPed&&o.cli!=null&&(
           <div style={{marginTop:6,background:"#fff",borderRadius:6,border:"1px solid #e2e8f0",padding:"5px 8px",display:"inline-block"}}>
             <Barcode39 text={`OF-${String(o.cli||"000").padStart(3,"0")}${o.nPed}`}/>
@@ -318,7 +379,7 @@ function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,bastidor
   );
 }
 
-function HornoCard({maq,num,ofs_h,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,bastidores,onBastidores,confirmadas,bloqueadas}){
+function HornoCard({maq,num,ofs_h,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,bastidores,onBastidores,capasOF,onToggleCapa,confirmadas,bloqueadas}){
   const [open,setOpen]=useState(true);
   const tot=ofs_h.reduce((s,o)=>s+cic(o,maq),0);
   const ok=tot>=HMIN&&tot<=HMAX;
@@ -347,14 +408,14 @@ function HornoCard({maq,num,ofs_h,onNC,onOK,onDeshacer,onDeshacerNC,operario,fic
       </div>
       {open&&(
         <div style={{paddingLeft:6,paddingTop:5,display:"flex",flexDirection:"column",gap:4}}>
-          {ofs_h.map((o,i)=><OFRow key={`${o.of}-${i}`} o={o} maq={maq} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} fichas={fichas} bastidores={bastidores} onBastidores={onBastidores} confirmadas={confirmadas} bloqueadas={bloqueadas}/>)}
+          {ofs_h.map((o,i)=><OFRow key={`${o.of}-${i}`} o={o} maq={maq} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} fichas={fichas} bastidores={bastidores} onBastidores={onBastidores} capasOF={capasOF} onToggleCapa={onToggleCapa} confirmadas={confirmadas} bloqueadas={bloqueadas}/>)}
         </div>
       )}
     </div>
   );
 }
 
-function VistaMaquina({maq,plan,usaHornos,est,onCambiarEst,operario,onCambiarOperario,onNC,onOK,onDeshacer,onDeshacerNC,fichas,bastidores,onBastidores,confirmadas,bloqueadas}){
+function VistaMaquina({maq,plan,usaHornos,est,onCambiarEst,operario,onCambiarOperario,onNC,onOK,onDeshacer,onDeshacerNC,fichas,bastidores,onBastidores,capasOF,onToggleCapa,confirmadas,bloqueadas}){
   const col=EC[est]||EC["Espera"];
   const hornos={};
   if(usaHornos){plan.forEach(o=>{const h=o.horno||1;if(!hornos[h])hornos[h]=[];hornos[h].push(o);});}
@@ -400,12 +461,12 @@ function VistaMaquina({maq,plan,usaHornos,est,onCambiarEst,operario,onCambiarOpe
         ):usaHornos?(
           // Vista con hornos (TWIN44, TWIN02, MN-01)
           Object.entries(hornos).map(([h,ofs_h])=>(
-            <HornoCard key={h} maq={maq} num={+h} ofs_h={ofs_h} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} fichas={fichas} bastidores={bastidores} onBastidores={onBastidores} confirmadas={confirmadas} bloqueadas={bloqueadas}/>
+            <HornoCard key={h} maq={maq} num={+h} ofs_h={ofs_h} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} fichas={fichas} bastidores={bastidores} onBastidores={onBastidores} capasOF={capasOF} onToggleCapa={onToggleCapa} confirmadas={confirmadas} bloqueadas={bloqueadas}/>
           ))
         ):(
           // Vista sin hornos — lista directa
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            {plan.map((o,i)=><OFRow key={`${o.of}-${i}`} o={o} maq={maq} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} fichas={fichas} bastidores={bastidores} onBastidores={onBastidores} confirmadas={confirmadas} bloqueadas={bloqueadas}/>)}
+            {plan.map((o,i)=><OFRow key={`${o.of}-${i}`} o={o} maq={maq} onNC={onNC} onOK={onOK} onDeshacer={onDeshacer} onDeshacerNC={onDeshacerNC} operario={operario} fichas={fichas} bastidores={bastidores} onBastidores={onBastidores} capasOF={capasOF} onToggleCapa={onToggleCapa} confirmadas={confirmadas} bloqueadas={bloqueadas}/>)}
           </div>
         )}
       </div>
@@ -1286,6 +1347,7 @@ export default function VistaOperario(){
   const [ncTurno,setNcTurno]=useState([]);
   const [pendCtrl,setPendCtrl]=useState(null); // {maqId, of_}
   const [bastidores,setBastidores]=useState({}); // {"ofId:maqId": nBast}
+  const [capasOF,setCapasOF]=useState({}); // {"ofId:maqId": Set de capas completadas}
   const [operarios,setOperarios]=useState({}); // {maqId: nombre}
   const [vista,setVista]=useState('maquinas'); // 'maquinas' | 'turnos' | 'buzon'
   const [planta,setPlanta]=useState(null); // null = sin seleccionar
@@ -1509,6 +1571,8 @@ export default function VistaOperario(){
           onDeshacerNC={(o,bloq)=>deshacerNC(o,bloq)}
           bastidores={bastidores}
           onBastidores={(o,val)=>setBastidores(p=>({...p,[o.of]:{...(p[o.of]||{}),...(typeof val==="object"?val:{num:val})}}))}
+          capasOF={capasOF}
+          onToggleCapa={(ofId,maqId,capa)=>setCapasOF(p=>{const k=`${ofId}:${maqId}`;const s=new Set(p[k]||[]);s.has(capa)?s.delete(capa):s.add(capa);return {...p,[k]:s};})}
           confirmadas={confirmadas}
           bloqueadas={bloqueadas}
         />
