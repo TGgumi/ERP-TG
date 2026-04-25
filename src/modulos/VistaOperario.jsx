@@ -231,7 +231,7 @@ function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,bastidor
           <div style={{marginTop:6,background:"#f8fafc",borderRadius:8,padding:"7px 9px",border:"0.5px solid #e2e8f0"}}>
             <div style={{fontSize:10,fontWeight:700,color:"#374151",marginBottom:5}}>🗂 Bastidores asignados a esta OF</div>
             {/* Grid de 30 bastidores seleccionables */}
-            <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:maq==="MN Bastid"?8:0}}>
+            <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:6}}>
               {Array.from({length:30},(_,i)=>i+1).map(n=>{
                 const sel = (bastidores?.[o.of]?.nums||[]).includes(n);
                 return(
@@ -250,25 +250,72 @@ function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,bastidor
                 );
               })}
             </div>
-            {/* Resumen seleccionados */}
-            {(bastidores?.[o.of]?.nums||[]).length>0&&(
-              <div style={{fontSize:10,color:"#1d4ed8",fontWeight:600,marginTop:4,marginBottom:maq==="MN Bastid"?8:0}}>
+            {/* En MN Bastid: mostrar estado de capas por bastidor */}
+            {maq==="MN Bastid"&&(bastidores?.[o.of]?.nums||[]).length>0&&(()=>{
+              const capas = parsearCapas(o.proceso);
+              if(capas.length===0) return null;
+              const nums = bastidores?.[o.of]?.nums||[];
+              const capasB = bastidores?.[o.of]?.capasB||{}; // {bastidor_num: Set/array de capas hechas}
+              const totalCheck = nums.length * capas.length;
+              const doneCheck  = nums.reduce((acc,n)=>acc+((capasB[n]||[]).length),0);
+              return(
+                <div style={{borderTop:"0.5px solid #e2e8f0",paddingTop:8}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+                    <span style={{fontSize:10,fontWeight:700,color:"#374151"}}>🎨 Capas por bastidor</span>
+                    <span style={{fontSize:9,color:doneCheck===totalCheck?"#16a34a":"#6b7280",fontWeight:600}}>
+                      {doneCheck}/{totalCheck} completadas
+                    </span>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                    {nums.map(n=>{
+                      const hechas = capasB[n]||[];
+                      const todas  = hechas.length===capas.length;
+                      return(
+                        <div key={n} style={{background:todas?"#f0fdf4":"#fff",borderRadius:7,padding:"6px 9px",border:`0.5px solid ${todas?"#86efac":"#e5e7eb"}`}}>
+                          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+                            <div style={{width:22,height:22,borderRadius:5,background:"#1d4ed8",color:"#fff",fontWeight:700,fontSize:11,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{n}</div>
+                            <span style={{fontSize:11,fontWeight:600,color:"#374151"}}>Bastidor {n}</span>
+                            <span style={{fontSize:9,marginLeft:"auto",color:todas?"#16a34a":"#9ca3af",fontWeight:600}}>{hechas.length}/{capas.length}</span>
+                            {todas&&<span style={{fontSize:9,color:"#16a34a",fontWeight:700}}>✓ Listo</span>}
+                          </div>
+                          <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                            {capas.map((capa,ci)=>{
+                              const hecha = hechas.includes(capa);
+                              return(
+                                <label key={ci} onClick={()=>{
+                                  const curr = capasB[n]||[];
+                                  const next = hecha ? curr.filter(c=>c!==capa) : [...curr,capa];
+                                  const newCapasB = {...capasB,[n]:next};
+                                  onBastidores&&onBastidores(o,{...(bastidores?.[o.of]||{}),capasB:newCapasB});
+                                }}
+                                  style={{display:"flex",alignItems:"center",gap:4,padding:"3px 7px",borderRadius:5,cursor:"pointer",
+                                    background:hecha?"#dcfce7":"#f8fafc",border:`0.5px solid ${hecha?"#86efac":"#e2e8f0"}`,userSelect:"none"}}>
+                                  <div style={{width:13,height:13,borderRadius:3,flexShrink:0,
+                                    background:hecha?"#16a34a":"#fff",border:`1.5px solid ${hecha?"#16a34a":"#d1d5db"}`,
+                                    display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#fff",fontWeight:700}}>
+                                    {hecha?"✓":""}
+                                  </div>
+                                  <span style={{fontSize:10,fontWeight:hecha?600:400,color:hecha?"#166534":"#374151"}}>{capa}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {doneCheck===totalCheck&&(
+                    <div style={{marginTop:6,fontSize:10,color:"#16a34a",fontWeight:700,textAlign:"center",padding:"4px",background:"#f0fdf4",borderRadius:5}}>
+                      ✅ Todos los bastidores completados
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+            {/* En DB02 y GR-BAST: solo resumen */}
+            {maq!=="MN Bastid"&&(bastidores?.[o.of]?.nums||[]).length>0&&(
+              <div style={{fontSize:10,color:"#1d4ed8",fontWeight:600}}>
                 ✓ Bastidores: {(bastidores?.[o.of]?.nums||[]).join(", ")}
-              </div>
-            )}
-            {/* Capa solo en MN Bastid */}
-            {maq==="MN Bastid"&&(
-              <div style={{display:"flex",alignItems:"center",gap:6,borderTop:"0.5px solid #e2e8f0",paddingTop:6}}>
-                <span style={{fontSize:10,fontWeight:600,color:"#374151"}}>📐 Capa:</span>
-                <select
-                  value={(bastidores&&bastidores[o.of]?.capa)||""}
-                  onChange={e=>onBastidores&&onBastidores(o,{...(bastidores?.[o.of]||{}),capa:e.target.value})}
-                  style={{fontSize:11,fontWeight:700,padding:"2px 6px",borderRadius:5,border:"1px solid #86efac",background:"#f0fdf4",color:"#166534",cursor:"pointer",outline:"none"}}>
-                  <option value="">—</option>
-                  {Array.from({length:10},(_,i)=>i+1).map(n=>(
-                    <option key={n} value={String(n)}>{n}ª capa</option>
-                  ))}
-                </select>
               </div>
             )}
           </div>
