@@ -1888,8 +1888,268 @@ function TabKPIs({ ctrl }) {
 
 
 // ─── MÓDULO PRINCIPAL ─────────────────────────────────────────────
+
+// ─── TAB HOMOLOGACIONES LAB ────────────────────────────────────────
+function TabHomologaciones(){
+  const { homologaciones, setHomologaciones } = useContext(ERPContext);
+  const [sel, setSel]       = useState(null);
+  const [modal, setModal]   = useState(null); // "nss"|"aspecto"|"metalografico"
+  const [formE, setFormE]   = useState({});   // form ensayo activo
+
+  const hom = homologaciones.find(h=>h.id===sel);
+
+  const EST_COL = {
+    pendiente:  {label:"Pendiente",   bg:"#f1f5f9",tx:"#64748b"},
+    en_curso:   {label:"En curso",    bg:"#fef3c7",tx:"#b45309"},
+    ok:         {label:"✓ OK",        bg:"#dcfce7",tx:"#166534"},
+    nok:        {label:"✗ NOK",       bg:"#fee2e2",tx:"#b91c1c"},
+  };
+  const EST_HOM = {
+    pendiente:     {label:"Pendiente inicio",    col:"#9ca3af"},
+    ensayos_curso: {label:"Ensayos en curso",    col:"#d97706"},
+    lab_ok:        {label:"✅ Lab OK",            col:"#16a34a"},
+    lab_nok:       {label:"❌ Lab NOK",           col:"#dc2626"},
+  };
+
+  function badgeE(e){
+    const c = EST_COL[e]||EST_COL.pendiente;
+    return <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:10,background:c.bg,color:c.tx}}>{c.label}</span>;
+  }
+
+  // Actualizar el estado global de la homologación basado en los ensayos
+  function calcEstadoHom(h){
+    const ensayos = [h.nss, h.aspecto, h.metalografico];
+    if(ensayos.some(e=>e.estado==="nok")) return "lab_nok";
+    if(ensayos.every(e=>e.estado==="ok")) return "lab_ok";
+    if(ensayos.some(e=>e.estado==="en_curso"||e.estado==="ok")) return "ensayos_curso";
+    return "pendiente";
+  }
+
+  function guardarEnsayo(){
+    if(!sel||!modal) return;
+    setHomologaciones(p=>p.map(h=>{
+      if(h.id!==sel) return h;
+      const updated = {...h, [modal]:{...h[modal],...formE, fecha: formE.fecha||new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit",year:"numeric"})}};
+      updated.estado = calcEstadoHom(updated);
+      if(updated.estado==="lab_ok"&&!updated.fecha_cierre)
+        updated.fecha_cierre = new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit",year:"numeric"});
+      return updated;
+    }));
+    setModal(null); setFormE({});
+  }
+
+  function abrirEnsayo(tipo, ensayo){
+    setFormE({...ensayo});
+    setModal(tipo);
+  }
+
+  const ENSAYOS = [
+    {key:"nss",          icon:"🌊",label:"Control Niebla Salina (NSS)", desc:"Ensayo de corrosión en cámara NSS — verificación de horas de resistencia"},
+    {key:"aspecto",      icon:"👁",label:"Control de Aspecto",           desc:"Inspección visual de acabado, color, uniformidad y defectos superficiales"},
+    {key:"metalografico",icon:"🔬",label:"Corte Metalográfico",          desc:"Análisis de sección transversal — espesor de capa, adherencia y microestructura"},
+  ];
+
+  const sInp = {border:"1.5px solid #e5e7eb",borderRadius:7,padding:"8px 10px",fontSize:12,width:"100%",boxSizing:"border-box",outline:"none"};
+  const sLbl = {fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:".05em",display:"block",marginBottom:4};
+
+  return(
+    <div style={{display:"flex",gap:14}}>
+
+      {/* ── Lista homologaciones ── */}
+      <div style={{width:280,flexShrink:0,display:"flex",flexDirection:"column",gap:6}}>
+        <div style={{fontSize:11,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:".05em",marginBottom:2}}>
+          Homologaciones activas ({homologaciones.length})
+        </div>
+        {homologaciones.map(h=>{
+          const act = sel===h.id;
+          const ec = EST_HOM[h.estado]||EST_HOM.pendiente;
+          const ensayos = [h.nss,h.aspecto,h.metalografico];
+          const nOk = ensayos.filter(e=>e.estado==="ok").length;
+          return(
+            <div key={h.id} onClick={()=>setSel(h.id)}
+              style={{padding:"10px 12px",borderRadius:9,cursor:"pointer",
+                border:`1.5px solid ${act?"#2563eb":"#e5e7eb"}`,background:act?"#eff6ff":"#fff",
+                borderLeft:`3px solid ${ec.col}`}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                <span style={{fontFamily:"monospace",fontSize:10,fontWeight:600,color:"#9ca3af"}}>{h.id}</span>
+                <span style={{fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:10,background:ec.col+"20",color:ec.col}}>{ec.label}</span>
+              </div>
+              <div style={{fontSize:12,fontWeight:700,color:"#111827",marginBottom:2,lineHeight:1.3}}>{h.desc}</div>
+              <div style={{fontSize:10,color:"#6b7280"}}>{h.cliente}</div>
+              <div style={{display:"flex",alignItems:"center",gap:6,marginTop:5}}>
+                <div style={{flex:1,height:4,background:"#e5e7eb",borderRadius:2,overflow:"hidden"}}>
+                  <div style={{width:`${(nOk/3)*100}%`,height:"100%",background:nOk===3?"#16a34a":"#2563eb",borderRadius:2,transition:"width .3s"}}/>
+                </div>
+                <span style={{fontSize:9,color:"#6b7280",fontWeight:600}}>{nOk}/3</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Panel detalle ── */}
+      {hom?(
+        <div style={{flex:1,display:"flex",flexDirection:"column",gap:12}}>
+
+          {/* Header */}
+          <div style={{background:hom.estado==="lab_ok"?"linear-gradient(135deg,#14532d,#16a34a)":hom.estado==="lab_nok"?"linear-gradient(135deg,#7f1d1d,#dc2626)":"linear-gradient(135deg,#1e3a5f,#2563eb)",borderRadius:12,padding:"16px 20px",color:"#fff"}}>
+            <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+              <div>
+                <div style={{fontSize:11,opacity:.7,marginBottom:4,textTransform:"uppercase",letterSpacing:".06em"}}>{hom.id}</div>
+                <div style={{fontSize:18,fontWeight:700}}>{hom.desc}</div>
+                <div style={{fontSize:12,opacity:.8,marginTop:2}}>{hom.ref} · {hom.cliente}</div>
+              </div>
+              <div style={{textAlign:"right"}}>
+                {hom.estado==="lab_ok"&&<div style={{fontSize:24,marginBottom:4}}>✅</div>}
+                {hom.estado==="lab_nok"&&<div style={{fontSize:24,marginBottom:4}}>❌</div>}
+                <div style={{fontSize:11,opacity:.8}}>NSS requerido: <strong>{hom.nss_req}h</strong></div>
+                {hom.norma&&<div style={{fontSize:11,opacity:.7}}>{hom.norma}</div>}
+              </div>
+            </div>
+            <div style={{marginTop:10,padding:"6px 10px",background:"rgba(255,255,255,.15)",borderRadius:6,fontSize:11,fontFamily:"monospace"}}>
+              {hom.proceso}
+            </div>
+            {hom.estado==="lab_ok"&&(
+              <div style={{marginTop:8,padding:"6px 10px",background:"rgba(255,255,255,.2)",borderRadius:6,fontSize:11,fontWeight:700}}>
+                ✅ HOMOLOGACIÓN DE LABORATORIO COMPLETADA · {hom.fecha_cierre}
+              </div>
+            )}
+          </div>
+
+          {/* Ensayos */}
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {ENSAYOS.map(en=>{
+              const ensayo = hom[en.key];
+              const ec = EST_COL[ensayo.estado]||EST_COL.pendiente;
+              return(
+                <div key={en.key} style={{background:"#fff",border:`1px solid ${ensayo.estado==="ok"?"#86efac":ensayo.estado==="nok"?"#fca5a5":ensayo.estado==="en_curso"?"#fde68a":"#e5e7eb"}`,borderRadius:10,overflow:"hidden"}}>
+                  {/* Header ensayo */}
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:ensayo.estado==="ok"?"#f0fdf4":ensayo.estado==="nok"?"#fef2f2":ensayo.estado==="en_curso"?"#fffbeb":"#f8fafc",flexWrap:"wrap",gap:8}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <span style={{fontSize:20}}>{en.icon}</span>
+                      <div>
+                        <div style={{fontSize:13,fontWeight:700,color:"#111827"}}>{en.label}</div>
+                        <div style={{fontSize:10,color:"#6b7280"}}>{en.desc}</div>
+                      </div>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      {badgeE(ensayo.estado)}
+                      <button onClick={()=>abrirEnsayo(en.key,ensayo)}
+                        style={{background:"#fff",border:"1px solid #e2e8f0",color:"#374151",borderRadius:6,padding:"5px 12px",fontSize:11,cursor:"pointer",fontWeight:600}}>
+                        {ensayo.estado==="pendiente"?"▶ Iniciar":"✏ Actualizar"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Detalle ensayo si tiene datos */}
+                  {(ensayo.fecha||ensayo.obs||ensayo.tecnico||(en.key==="nss"&&ensayo.horas>0))&&(
+                    <div style={{padding:"10px 14px",display:"flex",gap:12,flexWrap:"wrap",fontSize:11}}>
+                      {en.key==="nss"&&ensayo.horas>0&&(
+                        <div style={{background:"#f8fafc",borderRadius:6,padding:"5px 10px"}}>
+                          <div style={{fontSize:9,color:"#9ca3af",fontWeight:700}}>HORAS ENSAYADAS</div>
+                          <div style={{fontSize:16,fontWeight:700,color:ensayo.horas>=hom.nss_req?"#16a34a":"#d97706"}}>{ensayo.horas}h <span style={{fontSize:10,fontWeight:400,color:"#9ca3af"}}>/ {hom.nss_req}h req.</span></div>
+                        </div>
+                      )}
+                      {ensayo.fecha&&<div style={{background:"#f8fafc",borderRadius:6,padding:"5px 10px"}}><div style={{fontSize:9,color:"#9ca3af",fontWeight:700}}>FECHA</div><div style={{fontSize:12,fontWeight:600}}>{ensayo.fecha}</div></div>}
+                      {ensayo.tecnico&&<div style={{background:"#f8fafc",borderRadius:6,padding:"5px 10px"}}><div style={{fontSize:9,color:"#9ca3af",fontWeight:700}}>TÉCNICO</div><div style={{fontSize:12,fontWeight:600}}>{ensayo.tecnico}</div></div>}
+                      {ensayo.obs&&<div style={{background:"#fffbeb",borderRadius:6,padding:"5px 10px",flex:1}}><div style={{fontSize:9,color:"#9ca3af",fontWeight:700}}>OBSERVACIONES</div><div style={{fontSize:11,color:"#374151"}}>{ensayo.obs}</div></div>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Info oferta vinculada */}
+          {hom.ofertaId&&(
+            <div style={{background:"#f8fafc",border:"0.5px solid #e2e8f0",borderRadius:8,padding:"9px 14px",fontSize:11,color:"#6b7280",display:"flex",gap:8,alignItems:"center"}}>
+              <span>📄</span>
+              <span>Vinculada a oferta <strong style={{color:"#1d4ed8"}}>{hom.ofertaId}</strong> — {hom.estado==="lab_ok"?"La oferta puede pasar a Definitiva":"Pendiente de completar ensayos"}</span>
+            </div>
+          )}
+        </div>
+      ):(
+        <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:"#9ca3af",fontSize:13}}>← Selecciona una homologación</div>
+      )}
+
+      {/* ── Modal ensayo ── */}
+      {modal&&hom&&(()=>{
+        const en = ENSAYOS.find(e=>e.key===modal);
+        return(
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:500,padding:16}}
+            onClick={e=>{if(e.target===e.currentTarget){setModal(null);setFormE({});}}}>
+            <div style={{background:"#fff",borderRadius:12,width:480,maxWidth:"98%",boxShadow:"0 20px 50px rgba(0,0,0,.25)",overflow:"hidden"}}>
+              <div style={{background:"#1e3a5f",padding:"14px 20px",color:"#fff",display:"flex",gap:10,alignItems:"center"}}>
+                <span style={{fontSize:22}}>{en.icon}</span>
+                <div>
+                  <div style={{fontSize:14,fontWeight:700}}>{en.label}</div>
+                  <div style={{fontSize:11,opacity:.7}}>{hom.desc} · {hom.id}</div>
+                </div>
+              </div>
+              <div style={{padding:"18px 20px",display:"flex",flexDirection:"column",gap:12}}>
+                {/* Estado */}
+                <div>
+                  <label style={sLbl}>Resultado del ensayo *</label>
+                  <div style={{display:"flex",gap:8}}>
+                    {[["ok","✓ OK","#dcfce7","#166534","#86efac"],["nok","✗ NOK","#fee2e2","#b91c1c","#fca5a5"],["en_curso","⏳ En curso","#fef3c7","#b45309","#fde68a"]].map(([v,l,bg,tx,bd])=>(
+                      <button key={v} onClick={()=>setFormE(p=>({...p,estado:v}))}
+                        style={{flex:1,padding:"8px",borderRadius:7,cursor:"pointer",fontWeight:formE.estado===v?700:500,
+                          background:formE.estado===v?bg:"#f8fafc",color:formE.estado===v?tx:"#374151",
+                          border:formE.estado===v?`1.5px solid ${bd}`:"1px solid #e2e8f0",fontSize:12}}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Horas NSS */}
+                {modal==="nss"&&(
+                  <div>
+                    <label style={sLbl}>Horas ensayadas</label>
+                    <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                      <input type="number" value={formE.horas||""} onChange={e=>setFormE(p=>({...p,horas:parseFloat(e.target.value)||0}))}
+                        style={{...sInp,width:100}} placeholder="0"/>
+                      <span style={{fontSize:12,color:"#6b7280"}}>h &nbsp;/&nbsp; {hom.nss_req}h requeridas
+                        {formE.horas>=hom.nss_req&&<span style={{color:"#16a34a",fontWeight:700}}> ✓ Superado</span>}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {/* Técnico + fecha */}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                  <div>
+                    <label style={sLbl}>Técnico responsable</label>
+                    <input value={formE.tecnico||""} onChange={e=>setFormE(p=>({...p,tecnico:e.target.value}))} style={sInp} placeholder="Nombre técnico"/>
+                  </div>
+                  <div>
+                    <label style={sLbl}>Fecha del ensayo</label>
+                    <input type="date" value={formE.fecha||""} onChange={e=>setFormE(p=>({...p,fecha:e.target.value}))} style={sInp}/>
+                  </div>
+                </div>
+                {/* Observaciones */}
+                <div>
+                  <label style={sLbl}>Observaciones / Resultados detallados</label>
+                  <textarea value={formE.obs||""} onChange={e=>setFormE(p=>({...p,obs:e.target.value}))} rows={3}
+                    placeholder={modal==="nss"?"Describe los resultados hora a hora, aparición de oxidación blanca/roja...":modal==="aspecto"?"Describe el acabado visual, uniformidad de color, defectos observados...":"Describe el espesor de capa, adherencia, microestructura observada..."}
+                    style={{...sInp,resize:"vertical",fontFamily:"inherit"}}/>
+                </div>
+              </div>
+              <div style={{padding:"12px 20px",borderTop:"1px solid #f3f4f6",display:"flex",gap:10,justifyContent:"flex-end",background:"#fafafa"}}>
+                <button onClick={()=>{setModal(null);setFormE({});}} style={{background:"transparent",border:"1px solid #d1d5db",color:"#374151",borderRadius:7,padding:"7px 16px",fontSize:12,fontWeight:600,cursor:"pointer"}}>Cancelar</button>
+                <button onClick={guardarEnsayo} disabled={!formE.estado}
+                  style={{background:formE.estado?"#1e3a5f":"#94a3b8",color:"#fff",border:"none",borderRadius:7,padding:"7px 20px",fontSize:12,fontWeight:700,cursor:formE.estado?"pointer":"not-allowed"}}>
+                  💾 Guardar ensayo
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
 export default function Laboratorio() {
-  const { ctrl } = useContext(ERPContext);
+  const { ctrl, homologaciones } = useContext(ERPContext);
   const [tab, setTab] = useState("kpis");
 
   return (
@@ -1901,6 +2161,7 @@ export default function Laboratorio() {
           ["nss",      "NSS Completo"],
           ["agua",     "Agua y depuración"],
           ["recepc",   "Recepciones"],
+          ["homolog",  "🔬 Homologaciones"],
           ["equipos",  "Equipos y calibración"],
         ]}
         cur={tab} onChange={setTab}
@@ -1911,6 +2172,7 @@ export default function Laboratorio() {
       {tab==="nss"       && <TabNSSCompleto/>}
       {tab==="agua"      && <TabAguaDepuracion/>}
       {tab==="recepc"    && <TabRecepciones/>}
+      {tab==="homolog"   && <TabHomologaciones/>}
       {tab==="equipos"   && <TabEquiposCompleto/>}
     </div>
   );

@@ -492,6 +492,11 @@ export default function ERP() {
   const [bloqueadas, setBloqueadas] = useState([]);
   const [mejoras,    setMejoras]    = useState([]);
   const [fichas,     setFichas]     = useState([]);
+  const [homologaciones, setHomologaciones] = useState([
+    {id:"HOM-2026-001",ref:"208322450110",desc:"BUSHING SPACER L110 M42",cliente:"MATZ-ERREKA, S.COOP.",norma:"P14A-WE-0218",proceso:"FOSFATADO + GRANALLADO + 2xKL120 + 2xNEGRO GZ",nss_req:720,ofertaId:"OFT-2603",estado:"lab_ok",nss:{estado:"ok",horas:744,fecha:"2026-03-10",obs:"",tecnico:""},aspecto:{estado:"ok",fecha:"2026-03-10",obs:"",tecnico:""},metalografico:{estado:"ok",fecha:"2026-03-12",obs:"",tecnico:""},fecha_inicio:"2026-02-20",fecha_cierre:"2026-03-12"},
+    {id:"HOM-2026-002",ref:"28825261 T44",desc:"TUBSA REF 261",cliente:"TUBSA AUTOMOCION",norma:"IATF 16949",proceso:"FOSFATADO + GRANALLADO + 2xKL120 + 2xNEGRO GZ",nss_req:480,ofertaId:"OFT-2601",estado:"ensayos_curso",nss:{estado:"en_curso",horas:312,fecha:"",obs:"",tecnico:""},aspecto:{estado:"pendiente",fecha:"",obs:"",tecnico:""},metalografico:{estado:"pendiente",fecha:"",obs:"",tecnico:""},fecha_inicio:"2026-03-15",fecha_cierre:""},
+    {id:"HOM-2026-003",ref:"208400220055",desc:"NEW PART REF 220055",cliente:"MATZ-ERREKA, S.COOP.",norma:"DIN 50979",proceso:"FOSFATADO + 2xKL120 + 2xNEGRO GZ",nss_req:1000,ofertaId:"OFT-2602",estado:"pendiente",nss:{estado:"pendiente",horas:0,fecha:"",obs:"",tecnico:""},aspecto:{estado:"pendiente",fecha:"",obs:"",tecnico:""},metalografico:{estado:"pendiente",fecha:"",obs:"",tecnico:""},fecha_inicio:"2026-04-01",fecha_cierre:""},
+  ]);
   const [modalMejora,setModalMejora]= useState(false);
 
   const oAc   = ofs.filter(o  => ["En Curso","Control Final","Expedición"].includes(o.est)).length;
@@ -503,7 +508,7 @@ export default function ERP() {
   const mejorasPend = mejoras.filter(m=>m.estado==="Pendiente").length;
 
   const getBadge = (d) => ({ produccion:oAc, calidad:ncsAb, mantenimiento:mVhoy, laboratorio:nok, gerencia:mejorasPend }[d] || 0);
-  const ctx = { ofs, setOfs, ncs, setNcs, mant, setMant, ctrl, setCtrl, bloqueadas, setBloqueadas, mejoras, setMejoras, fichas, setFichas, mVhoy, oAc, ncsAb };
+  const ctx = { ofs, setOfs, ncs, setNcs, mant, setMant, ctrl, setCtrl, bloqueadas, setBloqueadas, mejoras, setMejoras, fichas, setFichas, homologaciones, setHomologaciones, mVhoy, oAc, ncsAb };
   const { comp: Modulo, titulo } = MODULOS[dept] || MODULOS.gerencia;
 
   if(portal) return <PortalCliente onSalir={()=>setPortal(false)}/>;
