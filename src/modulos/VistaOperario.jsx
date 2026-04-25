@@ -274,7 +274,7 @@ function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,bastidor
           </div>
         )}
         {/* Capas de recubrimiento — solo en máquinas de recubrimiento */}
-        {["TWIN44","TWIN02","MN-01","MN Bastid"].includes(maq)&&(()=>{
+        {["MN Bastid"].includes(maq)&&(()=>{
           const capas = parsearCapas(o.proceso);
           if(capas.length===0) return null;
           const key = `${o.of}:${maq}`;
