@@ -50,9 +50,9 @@ const RUTAS_INIT = [
   {id:"RUT-003",fichaId:"FT-003",version:"v1",estado:"Activa",desc:"CASQ. SOLD. Ø22 — DC02",operaciones:[{orden:1,nombre:"Desengrasado",maquina:"DE02",tmin:10,tmax:15,temp:60,vel_bano:"",vel_centr:"",producto:"Desengrasante alcalino",obs:""},{orden:2,nombre:"Granallado",maquina:"GR-BAST",tmin:12,tmax:18,temp:"",vel_bano:15,vel_centr:"",producto:"Granalla S170",obs:""},{orden:3,nombre:"Desaceitado",maquina:"DC02",tmin:1,tmax:4,temp:"",vel_bano:0,vel_centr:0.08,producto:"Aceite MKR",obs:""}]},
 ];
 const OFERTAS_INIT = [
-  {id:"OFT-2601",cli:542,desc:"KLAMMER – Negro IATF",proceso:"FOSFATADO + GRANALLADO + 2xNEGRO GZ",precio_kg:0.28,kg_año:120000,estado:"Enviada",fecha:"2026-02-10",validez:"2026-05-10",contacto:"jgarcia@cefa.es",obs:"Pendiente respuesta cliente"},
-  {id:"OFT-2602",cli:9,  desc:"Clip suspensión – VH321",proceso:"FOSFATADO + GRANALLADO + 1xVH302",precio_kg:0.34,kg_año:85000,estado:"Pendiente",fecha:"2026-03-01",validez:"2026-06-01",contacto:"compras@celo.es",obs:""},
-  {id:"OFT-2603",cli:109,desc:"Ratchet – Negro+Deltalube",proceso:"FOSFATADO + GRANALLADO + 2xNEGRO GZ + DELTALUBE",precio_kg:0.41,kg_año:60000,estado:"Activa",fecha:"2026-01-15",validez:"2026-07-15",contacto:"tecnico@soniasa.es",obs:"Homologación en curso"},
+  {id:"OFT-2601",cli:542,desc:"KLAMMER – Negro IATF",proceso:"FOSFATADO + GRANALLADO + 2xNEGRO GZ",precio_kg:0.28,kg_año:120000,estado:"Enviada",tipo:"provisional",fecha:"2026-02-10",validez:"2026-05-10",contacto:"jgarcia@cefa.es",obs:"Pendiente respuesta cliente"},
+  {id:"OFT-2602",cli:9,  desc:"Clip suspensión – VH321",proceso:"FOSFATADO + GRANALLADO + 1xVH302",precio_kg:0.34,kg_año:85000,estado:"Provisional",tipo:"provisional",fecha:"2026-03-01",validez:"2026-06-01",contacto:"compras@celo.es",obs:""},
+  {id:"OFT-2603",cli:109,desc:"Ratchet – Negro+Deltalube",proceso:"FOSFATADO + GRANALLADO + 2xNEGRO GZ + DELTALUBE",precio_kg:0.41,kg_año:60000,estado:"Definitiva",tipo:"definitiva",fecha_def:"2026-03-20",fecha:"2026-01-15",validez:"2026-07-15",contacto:"tecnico@soniasa.es",obs:"Homologación en curso"},
 ];
 
 // ─── MODAL GENÉRICO ───────────────────────────────────────────────
@@ -522,7 +522,13 @@ function TabRutas({ fichas }){
 
       {ruta?(
         <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",gap:12}}>
-          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end",flexWrap:"wrap"}}>
+            {(oferta.estado==="Provisional"||oferta.estado==="Enviada")&&(
+              <button onClick={()=>setConfirmarDef(oferta.id)}
+                style={{...btnBase,background:"#dcfce7",color:"#166534",border:"1px solid #86efac",fontWeight:700}}>
+                ✅ Pasar a Definitiva
+              </button>
+            )}
             <button onClick={abrirEditar} style={{...btnBase,background:"#eff6ff",color:"#1d4ed8",border:"1px solid #93c5fd"}}>✏ Editar</button>
             <button onClick={()=>setConfirm(true)} style={{...btnBase,background:"#fef2f2",color:"#b91c1c",border:"1px solid #fca5a5"}}>🗑 Eliminar</button>
           </div>
@@ -618,10 +624,11 @@ function TabOfertas(){
   const [confirm,setConfirm] = useState(null);
   const [form,setForm]       = useState({});
   const oferta = ofertas.find(o=>o.id===sel);
-  const ESTADOS_OF=["Borrador","Enviada","Pendiente","Activa","Rechazada","Caducada"];
+  const ESTADOS_OF=["Borrador","Provisional","Enviada","Pendiente","Definitiva","Rechazada","Caducada"];
+  const [confirmarDef,setConfirmarDef] = useState(null); // oferta a pasar a Definitiva
 
   function abrirNueva(){
-    setForm({id:`OFT-${String(parseInt(new Date().getTime()/1000)).slice(-4)}`,cli:CLIENTES[0].id,desc:"",proceso:"",precio_kg:"",kg_año:"",estado:"Borrador",fecha:new Date().toISOString().slice(0,10),validez:"",contacto:"",obs:""});
+    setForm({id:`OFT-${String(parseInt(new Date().getTime()/1000)).slice(-4)}`,cli:CLIENTES[0].id,desc:"",proceso:"",precio_kg:"",kg_año:"",estado:"Provisional",tipo:"provisional",fecha:new Date().toISOString().slice(0,10),validez:"",contacto:"",obs:"",hom_ok:false,lab_ok:false});
     setModal("form");
   }
   function abrirEditar(){if(oferta){setForm({...oferta});setModal("form");}}
@@ -630,6 +637,10 @@ function TabOfertas(){
     if(!ofertas.find(o=>o.id===form.id)){setOfertas(p=>[...p,form]);setSel(form.id);}
     else{setOfertas(p=>p.map(o=>o.id===form.id?form:o));}
     setModal(null);
+  }
+  function pasarADefinitiva(ofId){
+    setOfertas(p=>p.map(o=>o.id===ofId?{...o,estado:"Definitiva",tipo:"definitiva",fecha_def:new Date().toISOString().slice(0,10)}:o));
+    setConfirmarDef(null);
   }
   function eliminar(){setOfertas(p=>p.filter(o=>o.id!==sel));setSel(null);setConfirm(null);}
   const ff=k=>e=>setForm(p=>({...p,[k]:e.target.type==="number"?parseFloat(e.target.value)||0:e.target.type==="select-one"&&k==="cli"?parseInt(e.target.value):e.target.value}));
@@ -642,7 +653,17 @@ function TabOfertas(){
           const act=sel===o.id;
           return(
             <div key={o.id} onClick={()=>setSel(o.id)} style={{padding:"10px 13px",borderRadius:9,cursor:"pointer",border:`1.5px solid ${act?"#2563eb":"#e5e7eb"}`,background:act?"#eff6ff":"#fff"}}>
-              <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{fontFamily:"monospace",fontSize:10.5,fontWeight:600,color:act?"#1d4ed8":"#9ca3af"}}>{o.id}</span>{badge(o.estado)}</div>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                <span style={{fontFamily:"monospace",fontSize:10.5,fontWeight:600,color:act?"#1d4ed8":"#9ca3af"}}>{o.id}</span>
+                <div style={{display:"flex",gap:4,alignItems:"center"}}>
+                  <span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:3,
+                    background:o.estado==="Definitiva"?"#dcfce7":"#fef9c3",
+                    color:o.estado==="Definitiva"?"#166534":"#854d0e"}}>
+                    {o.estado==="Definitiva"?"DEF":"PROV"}
+                  </span>
+                  {badge(o.estado)}
+                </div>
+              </div>
               <div style={{fontSize:12,fontWeight:600,marginBottom:2}}>{o.desc}</div>
               <div style={{fontSize:10.5,color:"#6b7280"}}>{cn(o.cli)}</div>
               <div style={{fontSize:11,fontFamily:"monospace",fontWeight:600,marginTop:3,color:"#1d4ed8"}}>{o.precio_kg?`${parseFloat(o.precio_kg).toFixed(2)} €/kg`:""}</div>
@@ -653,14 +674,32 @@ function TabOfertas(){
 
       {oferta?(
         <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",gap:12}}>
-          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end",flexWrap:"wrap"}}>
+            {(oferta.estado==="Provisional"||oferta.estado==="Enviada")&&(
+              <button onClick={()=>setConfirmarDef(oferta.id)}
+                style={{...btnBase,background:"#dcfce7",color:"#166534",border:"1px solid #86efac",fontWeight:700}}>
+                ✅ Pasar a Definitiva
+              </button>
+            )}
             <button onClick={abrirEditar} style={{...btnBase,background:"#eff6ff",color:"#1d4ed8",border:"1px solid #93c5fd"}}>✏ Editar</button>
             <button onClick={()=>setConfirm(true)} style={{...btnBase,background:"#fef2f2",color:"#b91c1c",border:"1px solid #fca5a5"}}>🗑 Eliminar</button>
           </div>
           <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:12,padding:"16px 20px"}}>
+            {/* Banner provisional / definitiva */}
+            <div style={{marginBottom:12,borderRadius:8,padding:"8px 12px",display:"flex",alignItems:"center",gap:8,
+              background:oferta.estado==="Definitiva"?"#dcfce7":oferta.estado==="Rechazada"?"#fee2e2":"#fef9c3",
+              border:`1px solid ${oferta.estado==="Definitiva"?"#86efac":oferta.estado==="Rechazada"?"#fca5a5":"#fde68a"}`}}>
+              <span style={{fontSize:18}}>{oferta.estado==="Definitiva"?"✅":oferta.estado==="Rechazada"?"❌":"⏳"}</span>
+              <div style={{flex:1}}>
+                <div style={{fontSize:12,fontWeight:700,color:oferta.estado==="Definitiva"?"#166534":oferta.estado==="Rechazada"?"#b91c1c":"#854d0e"}}>
+                  Oferta {oferta.estado==="Definitiva"?"Definitiva — Homologación y lab confirmados":oferta.estado==="Rechazada"?"Rechazada":"Provisional — Pendiente de validación por laboratorio y homologación"}
+                </div>
+                {oferta.fecha_def&&<div style={{fontSize:10,color:"#6b7280",marginTop:1}}>Confirmada el {oferta.fecha_def}</div>}
+              </div>
+              {badge(oferta.estado)}
+            </div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
               <div><div style={{fontSize:16,fontWeight:700}}>{oferta.desc}</div><div style={{fontSize:11,color:"#9ca3af",marginTop:2,fontFamily:"monospace"}}>{oferta.id}</div></div>
-              {badge(oferta.estado)}
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:8,marginBottom:10}}>
               {[["Cliente",cn(oferta.cli)],["Precio €/kg",oferta.precio_kg?`${parseFloat(oferta.precio_kg).toFixed(2)} €`:"—"],["Kg/año estimado",oferta.kg_año?`${parseInt(oferta.kg_año).toLocaleString()} kg`:"—"],["Fecha oferta",oferta.fecha||"—"],["Válido hasta",oferta.validez||"—"],["Contacto",oferta.contacto||"—"]].map(([k,v])=>(
@@ -704,6 +743,24 @@ function TabOfertas(){
         </Modal>
       )}
       {confirm&&<ModalConfirm texto={`¿Eliminar la oferta "${oferta?.desc}"?`} onClose={()=>setConfirm(null)} onConfirmar={eliminar}/>}
+      {confirmarDef&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:500,padding:16}}>
+          <div style={{background:"#fff",borderRadius:12,width:440,padding:"24px 28px",boxShadow:"0 20px 50px rgba(0,0,0,.25)"}}>
+            <div style={{fontSize:16,fontWeight:700,color:"#111827",marginBottom:8}}>✅ Pasar oferta a Definitiva</div>
+            <p style={{fontSize:13,color:"#374151",lineHeight:1.6,marginBottom:16}}>
+              Al confirmar, esta oferta pasará de <strong>Provisional</strong> a <strong>Definitiva</strong>.<br/>
+              Esto indica que los ensayos de laboratorio y la homologación han sido completados satisfactoriamente y la oferta queda validada.
+            </p>
+            <div style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:8,padding:"10px 14px",fontSize:12,color:"#166534",marginBottom:16}}>
+              ✓ Laboratorio OK &nbsp;·&nbsp; ✓ Homologación superada &nbsp;·&nbsp; ✓ Proceso validado
+            </div>
+            <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
+              <button onClick={()=>setConfirmarDef(null)} style={{background:"#f1f5f9",border:"1px solid #e2e8f0",color:"#374151",borderRadius:7,padding:"8px 16px",fontSize:12,fontWeight:600,cursor:"pointer"}}>Cancelar</button>
+              <button onClick={()=>pasarADefinitiva(confirmarDef)} style={{background:"#16a34a",color:"#fff",border:"none",borderRadius:7,padding:"8px 20px",fontSize:12,fontWeight:700,cursor:"pointer"}}>✅ Confirmar — Pasar a Definitiva</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
