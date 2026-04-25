@@ -207,21 +207,37 @@ function OFRow({o,maq,onNC,onOK,onDeshacer,onDeshacerNC,operario,fichas,bastidor
         <div style={{fontSize:10,color:s.tx,opacity:.55,marginTop:1}}>ref: {o.ref}</div>
         {(()=>{const fot=(fichas||[]).find(f=>f.ref_cli===o.ref||f.desc===o.ref)?.foto;return fot?<img src={fot} alt={o.ref} style={{marginTop:5,width:48,height:48,objectFit:"cover",borderRadius:6,border:"1px solid #e2e8f0"}}/>:null;})()}
         {["DB02","GR-BAST","MN Bastid"].includes(maq)&&(
-          <div style={{marginTop:6,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",background:"#f8fafc",borderRadius:7,padding:"5px 8px",border:"0.5px solid #e2e8f0"}}>
-            <div style={{display:"flex",alignItems:"center",gap:5}}>
-              <span style={{fontSize:10,fontWeight:600,color:"#374151"}}>🗂 Bastidor:</span>
-              <select
-                value={(bastidores&&bastidores[o.of]?.num)||""}
-                onChange={e=>onBastidores&&onBastidores(o,{...(bastidores?.[o.of]||{}),num:e.target.value})}
-                style={{fontSize:11,fontWeight:700,padding:"2px 6px",borderRadius:5,border:"1px solid #93c5fd",background:"#eff6ff",color:"#1d4ed8",cursor:"pointer",outline:"none"}}>
-                <option value="">—</option>
-                {Array.from({length:30},(_,i)=>i+1).map(n=>(
-                  <option key={n} value={String(n)}>{n}</option>
-                ))}
-              </select>
+          <div style={{marginTop:6,background:"#f8fafc",borderRadius:8,padding:"7px 9px",border:"0.5px solid #e2e8f0"}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#374151",marginBottom:5}}>🗂 Bastidores asignados a esta OF</div>
+            {/* Grid de 30 bastidores seleccionables */}
+            <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:maq==="MN Bastid"?8:0}}>
+              {Array.from({length:30},(_,i)=>i+1).map(n=>{
+                const sel = (bastidores?.[o.of]?.nums||[]).includes(n);
+                return(
+                  <button key={n} onClick={()=>{
+                    const curr = bastidores?.[o.of]?.nums||[];
+                    const next = sel ? curr.filter(x=>x!==n) : [...curr,n].sort((a,b)=>a-b);
+                    onBastidores&&onBastidores(o,{...(bastidores?.[o.of]||{}),nums:next});
+                  }}
+                    style={{width:28,height:28,borderRadius:5,fontSize:11,fontWeight:700,cursor:"pointer",
+                      background:sel?"#1d4ed8":"#fff",
+                      color:sel?"#fff":"#374151",
+                      border:`1.5px solid ${sel?"#1d4ed8":"#d1d5db"}`,
+                      transition:"all .1s"}}>
+                    {n}
+                  </button>
+                );
+              })}
             </div>
+            {/* Resumen seleccionados */}
+            {(bastidores?.[o.of]?.nums||[]).length>0&&(
+              <div style={{fontSize:10,color:"#1d4ed8",fontWeight:600,marginTop:4,marginBottom:maq==="MN Bastid"?8:0}}>
+                ✓ Bastidores: {(bastidores?.[o.of]?.nums||[]).join(", ")}
+              </div>
+            )}
+            {/* Capa solo en MN Bastid */}
             {maq==="MN Bastid"&&(
-              <div style={{display:"flex",alignItems:"center",gap:5}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,borderTop:"0.5px solid #e2e8f0",paddingTop:6}}>
                 <span style={{fontSize:10,fontWeight:600,color:"#374151"}}>📐 Capa:</span>
                 <select
                   value={(bastidores&&bastidores[o.of]?.capa)||""}
